@@ -3,10 +3,15 @@ import Button from '../common/Button';
 import Input from '../common/Input';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useUsers } from '../../hooks/useUsers';
+import { useAuth } from '../../hooks/useAuth';
+import activities from '../../services/activities';
+
+const STORAGE_KEY = 'budget_app_recent_expenses';
 
 const ExpenseForm = ({ onSubmit, initialExpense }) => {
   const { addExpense, updateExpense } = useExpenses();
   const { users } = useUsers();
+  const { currentUser } = useAuth();
   
   const [description, setDescription] = useState(initialExpense?.description || '');
   const [amount, setAmount] = useState(initialExpense?.amount?.toString() || '');
@@ -104,7 +109,7 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
     fontSize: '12px',
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     const expenseData = {
@@ -112,19 +117,118 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
       amount: parseFloat(amount),
       date: new Date(date),
       paidBy,
+      paidByUserId: paidBy === 'You' ? currentUser?.id : getUserId(paidBy),
       splitWith: selectedMembers,
       splitMethod: splitMethod.toLowerCase(),
       category,
       notes
     };
     
+    let newExpense;
+    
     if (initialExpense?.id) {
-      updateExpense(initialExpense.id, expenseData);
+      // Update existing expense
+      newExpense = await updateExpense(initialExpense.id, expenseData);
+      
+      // Create activity for update
+      await activities.create({
+        action: 'updated',
+        resourceType: 'expense',
+        resourceId: initialExpense.id,
+        metadata: {
+          description: expenseData.description,
+          amount: expenseData.amount
+        }
+      });
+      
+      // Update in localStorage
+      updateInLocalStorage(initialExpense.id, newExpense);
+      
+      // Dispatch custom event to notify ExpenseList about the update
+      dispatchExpenseUpdatedEvent(newExpense);
     } else {
-      addExpense(expenseData);
+      // Create new expense
+      newExpense = await addExpense(expenseData);
+      
+      // Create activity record for the new expense
+      await activities.create({
+        action: 'created',
+        resourceType: 'expense',
+        resourceId: newExpense.id,
+        metadata: {
+          description: expenseData.description,
+          amount: expenseData.amount
+        }
+      });
+      
+      // Save to localStorage
+      saveToLocalStorage(newExpense);
+      
+      // Dispatch custom event to notify ExpenseList
+      dispatchExpenseAddedEvent(newExpense);
     }
     
     if (onSubmit) onSubmit();
+  };
+
+  const saveToLocalStorage = (newExpense) => {
+    try {
+      // Get existing expenses from localStorage
+      const storedExpenses = localStorage.getItem(STORAGE_KEY);
+      let expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
+      
+      // Add new expense and sort by date (newest first)
+      expenses = [newExpense, ...expenses]
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      // Save back to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  };
+  
+  const updateInLocalStorage = (expenseId, updatedExpense) => {
+    try {
+      // Get existing expenses from localStorage
+      const storedExpenses = localStorage.getItem(STORAGE_KEY);
+      if (!storedExpenses) return;
+      
+      const expenses = JSON.parse(storedExpenses);
+      
+      // Replace the updated expense
+      const updatedExpenses = expenses.map(exp => 
+        exp.id === expenseId ? updatedExpense : exp
+      );
+      
+      // Sort and save back to localStorage
+      updatedExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedExpenses));
+    } catch (error) {
+      console.error('Error updating localStorage:', error);
+    }
+  };
+  
+  const dispatchExpenseAddedEvent = (expense) => {
+    // Create and dispatch custom event with expense data
+    const event = new CustomEvent('expenseAdded', { 
+      detail: expense 
+    });
+    window.dispatchEvent(event);
+  };
+  
+  const dispatchExpenseUpdatedEvent = (expense) => {
+    // Create and dispatch custom event with updated expense data
+    const event = new CustomEvent('expenseUpdated', { 
+      detail: expense 
+    });
+    window.dispatchEvent(event);
+  };
+
+  const getUserId = (paidByName) => {
+    // Find matching user and return their ID
+    const user = users.find(u => u.name === paidByName);
+    return user ? user.id : null;
   };
 
   const toggleMember = (userName) => {

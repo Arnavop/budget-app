@@ -1,88 +1,136 @@
 import React, { createContext, useState, useEffect } from 'react';
+import expenseService from '../services/expenses';
+import { useAuth } from '../hooks/useAuth';
 
 export const ExpenseContext = createContext();
 
 export const ExpenseProvider = ({ children }) => {
   const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { currentUser } = useAuth();
 
-  // Mock initial expenses
-  const mockExpenses = [
-    {
-      id: '1',
-      description: 'Grocery shopping',
-      amount: 45.80,
-      paidBy: 'You',
-      date: new Date(),
-      splitWith: ['Alex', 'Sam', 'Jordan'],
-      splitMethod: 'equally',
-      category: 'Food'
-    },
-    {
-      id: '2',
-      description: 'Uber ride',
-      amount: 24.50,
-      paidBy: 'Alex',
-      date: new Date(Date.now() - 86400000), // Yesterday
-      splitWith: ['You'],
-      splitMethod: 'equally',
-      category: 'Transport'
-    },
-    {
-      id: '3',
-      description: 'Movie tickets',
-      amount: 62.00,
-      paidBy: 'You',
-      date: new Date('2023-03-28'),
-      splitWith: ['Alex', 'Sam', 'Jordan'],
-      splitMethod: 'equally',
-      category: 'Entertainment'
-    },
-    {
-      id: '4',
-      description: 'Electricity bill',
-      amount: 95.20,
-      paidBy: 'You',
-      date: new Date('2023-03-26'),
-      splitWith: ['Jordan', 'Sam'],
-      splitMethod: 'equally',
-      category: 'Utilities'
-    }
-  ];
-
+  // Fetch expenses when user changes
   useEffect(() => {
-    // In a real app, this would fetch from an API
-    setExpenses(mockExpenses);
-    setLoading(false);
-  }, []);
-
-  const addExpense = (expense) => {
-    const newExpense = {
-      ...expense,
-      id: Date.now().toString()
+    if (!currentUser) {
+      setExpenses([]);
+      setIsLoading(false);
+      return;
+    }
+    
+    const fetchExpenses = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const data = await expenseService.getAll();
+        setExpenses(data);
+      } catch (err) {
+        console.error("Error fetching expenses:", err);
+        setError("Failed to load expenses. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     };
-    setExpenses([newExpense, ...expenses]);
+    
+    fetchExpenses();
+    
+    // No need for real-time subscriptions with mock data
+  }, [currentUser]);
+
+  // CRUD operations
+  const addExpense = async (expenseData) => {
+    try {
+      const newExpense = await expenseService.create(expenseData);
+      setExpenses(prevExpenses => [newExpense, ...prevExpenses]);
+      return newExpense;
+    } catch (err) {
+      console.error("Error adding expense:", err);
+      throw err;
+    }
   };
 
-  const updateExpense = (id, updatedExpense) => {
-    setExpenses(expenses.map(expense => 
-      expense.id === id ? { ...expense, ...updatedExpense } : expense
-    ));
+  const updateExpense = async (id, expenseData) => {
+    try {
+      const updated = await expenseService.update(id, expenseData);
+      setExpenses(prevExpenses => 
+        prevExpenses.map(expense => 
+          expense.id === id ? updated : expense
+        )
+      );
+      return updated;
+    } catch (err) {
+      console.error("Error updating expense:", err);
+      throw err;
+    }
   };
 
-  const deleteExpense = (id) => {
-    setExpenses(expenses.filter(expense => expense.id !== id));
+  const deleteExpense = async (id) => {
+    try {
+      await expenseService.delete(id);
+      setExpenses(prevExpenses => 
+        prevExpenses.filter(expense => expense.id !== id)
+      );
+      return true;
+    } catch (err) {
+      console.error("Error deleting expense:", err);
+      throw err;
+    }
+  };
+
+  const getExpenseById = (id) => {
+    return expenses.find(expense => expense.id === id);
+  };
+
+  const settleExpense = async (id, settled = true) => {
+    try {
+      const updated = await expenseService.settleExpense(id, settled);
+      setExpenses(prevExpenses => 
+        prevExpenses.map(expense => 
+          expense.id === id ? {...expense, isSettled: settled} : expense
+        )
+      );
+      return updated;
+    } catch (err) {
+      console.error("Error settling expense:", err);
+      throw err;
+    }
+  };
+
+  const getExpensesByGroup = async (groupId) => {
+    try {
+      return await expenseService.getByGroup(groupId);
+    } catch (err) {
+      console.error("Error fetching group expenses:", err);
+      throw err;
+    }
+  };
+
+  const getExpenseStats = async () => {
+    try {
+      return await expenseService.getStats();
+    } catch (err) {
+      console.error("Error fetching expense stats:", err);
+      throw err;
+    }
   };
 
   return (
     <ExpenseContext.Provider value={{
       expenses,
-      loading,
+      isLoading,
+      error,
       addExpense,
       updateExpense,
-      deleteExpense
+      deleteExpense,
+      getExpenseById,
+      settleExpense,
+      getExpensesByGroup,
+      getExpenseStats,
     }}>
       {children}
     </ExpenseContext.Provider>
   );
 };
+
+export default ExpenseProvider;

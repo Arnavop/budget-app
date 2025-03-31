@@ -1,46 +1,89 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import notificationsService from '../services/notifications';
 
 export const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { currentUser } = useAuth();
 
-  const addNotification = (notification) => {
-    const id = Date.now().toString();
-    const newNotification = {
-      ...notification,
-      id,
-      read: false,
-      timestamp: new Date()
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const fetchNotifications = async () => {
+      try {
+        const data = await notificationsService.getAll();
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.read).length);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
     };
-    setNotifications([newNotification, ...notifications]);
+    
+    fetchNotifications();
+    
+    // No need for real-time subscription as we're using mock data
+  }, [currentUser]);
 
-    // Auto remove after 5 seconds if it's a toast
-    if (notification.type === 'toast') {
-      setTimeout(() => {
-        removeNotification(id);
-      }, 5000);
+  const markAsRead = async (id) => {
+    try {
+      await notificationsService.markAsRead(id);
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
     }
   };
 
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
+  const deleteNotification = async (id) => {
+    try {
+      await notificationsService.delete(id);
+      const updatedNotifications = notifications.filter(n => n.id !== id);
+      setNotifications(updatedNotifications);
+      setUnreadCount(updatedNotifications.filter(n => !n.read).length);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
   };
 
-  const removeNotification = (id) => {
-    setNotifications(notifications.filter(notification => notification.id !== id));
+  const clearAll = async () => {
+    try {
+      await notificationsService.deleteAll();
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    }
+  };
+
+  const addNotification = async (notification) => {
+    try {
+      const newNotification = await notificationsService.create(notification);
+      setNotifications([newNotification, ...notifications]);
+      if (!notification.read) {
+        setUnreadCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error adding notification:', error);
+    }
   };
 
   return (
     <NotificationContext.Provider value={{
       notifications,
-      addNotification,
+      unreadCount,
       markAsRead,
-      removeNotification
+      deleteNotification,
+      clearAll,
+      addNotification
     }}>
       {children}
     </NotificationContext.Provider>
   );
 };
+
+export default NotificationProvider;

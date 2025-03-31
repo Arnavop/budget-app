@@ -99,7 +99,11 @@ const Header = () => {
 
   const handleNavClick = (page) => {
     setActivePage(page);
-    navigate(`/${page === 'dashboard' ? '' : page}`);
+    if (page === 'dashboard') {
+      navigate('/dashboard');
+    } else {
+      navigate(`/dashboard/${page}`);
+    }
   };
 
   const handleProfileClick = () => {

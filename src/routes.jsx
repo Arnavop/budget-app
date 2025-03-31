@@ -20,14 +20,14 @@ const routes = [
     icon: 'dashboard'
   },
   {
-    path: '/groups',
+    path: '/dashboard/groups',
     component: Groups,
     exact: true,
     name: 'Groups',
     icon: 'group'
   },
   {
-    path: '/groups/:id',
+    path: '/dashboard/groups/:id',
     component: GroupDetail,
     exact: true,
     name: 'Group Detail',

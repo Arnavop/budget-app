@@ -5,44 +5,100 @@ import Input from '../components/common/Input';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
+import { auth } from '../services/auth'; // Import auth service directly
 
 const UserProfile = () => {
   const { currentUser, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Initialize state with currentUser data when available
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [color, setColor] = useState(currentUser?.color || 'blue');
-  const [profileData, setProfileData] = useState(null);
+  
+  // Initialize profileData with currentUser so we have data even before fetching
+  const [profileData, setProfileData] = useState(currentUser || null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    // If we already have currentUser, use it immediately
+    if (currentUser?.id) {
+      setProfileData(currentUser);
+      setName(currentUser.name || '');
+      setEmail(currentUser.email || '');
+      setColor(currentUser.color || 'blue');
+      setLoading(false); // Stop loading immediately since we have data
+    }
+    
     const fetchProfileData = async () => {
-      if (currentUser?.id) {
-        try {
+      console.log('Fetching profile data, currentUser:', currentUser);
+      
+      try {
+        // Check for session if currentUser is not available
+        if (!currentUser?.id) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            console.log('No session found, redirecting to login');
+            navigate('/login');
+            return;
+          }
+          
+          const userId = session.user.id;
+          console.log('Using session user ID:', userId);
+          
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching profile from session:', error);
+            throw error;
+          }
+          
+          console.log('Profile data from session:', data);
+          setProfileData(data);
+          setName(data.name || '');
+          setEmail(data.email || '');
+          setColor(data.color || 'blue');
+        } else {
+          // Use currentUser.id as before
+          console.log('Using currentUser ID:', currentUser.id);
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', currentUser.id)
             .single();
             
-          if (error) throw error;
+          if (error) {
+            console.error('Error fetching profile from currentUser:', error);
+            throw error;
+          }
           
+          console.log('Profile data from currentUser:', data);
           setProfileData(data);
           setName(data.name || '');
           setEmail(data.email || '');
           setColor(data.color || 'blue');
-        } catch (error) {
-          console.error('Error fetching profile:', error);
-        } finally {
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        // Don't stop loading if we have currentUser data
+        if (!currentUser) {
           setLoading(false);
         }
+      } finally {
+        console.log('Setting loading to false');
+        setLoading(false);
       }
     };
     
     fetchProfileData();
-  }, [currentUser?.id]);
+  }, [currentUser, navigate]);
   
+  // Rest of the component remains the same
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -68,7 +124,10 @@ const UserProfile = () => {
     }
   };
   
-  if (loading) {
+  // Debug loading state
+  console.log('Current loading state:', loading, 'profileData:', profileData);
+  
+  if (loading && !profileData) {
     return (
       <div>
         <h1 style={{ marginBottom: '20px' }}>Your Profile</h1>
@@ -81,12 +140,33 @@ const UserProfile = () => {
     );
   }
   
+  // If we're not loading but don't have profileData, something went wrong
+  if (!profileData) {
+    return (
+      <div>
+        <h1 style={{ marginBottom: '20px' }}>Your Profile</h1>
+        <Card>
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            Failed to load profile. Please try again later.
+            <Button
+              text="Back to Dashboard"
+              variant="secondary"
+              onClick={() => navigate('/dashboard')}
+              style={{ marginTop: '20px' }}
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+  
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleString();
   };
   
+  // ...existing code...
   return (
     <div>
       <h1 style={{ marginBottom: '20px' }}>Your Profile</h1>

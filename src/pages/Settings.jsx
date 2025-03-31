@@ -1,173 +1,171 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/common/Card';
-import { useAuth } from '../hooks/useAuth';
+import Button from '../components/common/Button';
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 
 const Settings = () => {
-  const { currentUser } = useAuth();
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { currentTheme, setTheme } = useTheme();
+  const { logout } = useAuth();
+  const { clearAll } = useNotifications();
+  const navigate = useNavigate();
+  
+  const [currency, setCurrency] = useState('USD');
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const settingRowStyles = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '15px 0',
-    borderBottom: '1px solid var(--bg-tertiary)',
+  const handleSaveSettings = () => {
+    // In a real app, we would save these settings to the database
+    // For now, we'll just show a success message
+    alert('Settings saved successfully!');
   };
-
-  const settingLabelStyles = {
-    fontSize: '16px',
+  
+  const handleLogout = async () => {
+    try {
+      setIsLoading(true);
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('Error logging out. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  const settingDescriptionStyles = {
-    fontSize: '14px',
-    color: 'var(--text-secondary)',
-    marginTop: '5px',
-  };
-
-  const toggleSwitchStyles = {
-    position: 'relative',
-    display: 'inline-block',
-    width: '50px',
-    height: '24px',
-  };
-
-  const toggleSliderStyles = {
-    position: 'absolute',
-    cursor: 'pointer',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: darkMode ? 'var(--accent)' : 'var(--bg-tertiary)',
-    borderRadius: '24px',
-    transition: '.4s',
-  };
-
-  const toggleSliderKnobStyles = {
-    position: 'absolute',
-    content: '""',
-    height: '16px',
-    width: '16px',
-    left: darkMode ? '29px' : '4px',
-    bottom: '4px',
-    backgroundColor: 'var(--text-primary)',
-    borderRadius: '50%',
-    transition: '.4s',
+  
+  const handleClearNotifications = async () => {
+    try {
+      await clearAll();
+      alert('All notifications cleared!');
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    }
   };
 
   return (
-    <div>
-      <h1 style={{ marginBottom: '20px' }}>Settings</h1>
+    <div className="container">
+      <h1>Settings</h1>
       
-      <Card>
-        <h2 style={{ marginBottom: '20px' }}>Appearance</h2>
-        
-        <div style={settingRowStyles}>
-          <div>
-            <div style={settingLabelStyles}>Dark Mode</div>
-            <div style={settingDescriptionStyles}>
-              Use dark theme throughout the application
-            </div>
-          </div>
-          <div style={toggleSwitchStyles} onClick={toggleDarkMode}>
-            <div style={toggleSliderStyles}>
-              <div style={toggleSliderKnobStyles}></div>
-            </div>
+      {/* Theme Settings */}
+      <Card style={{ marginBottom: '20px' }}>
+        <h3>Theme</h3>
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '10px' }}>App Theme</label>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Button
+              text="Light"
+              variant={currentTheme === 'light' ? 'primary' : 'secondary'}
+              onClick={() => setTheme('light')}
+            />
+            <Button
+              text="Dark"
+              variant={currentTheme === 'dark' ? 'primary' : 'secondary'}
+              onClick={() => setTheme('dark')}
+            />
+            <Button
+              text="System"
+              variant={currentTheme === 'system' ? 'primary' : 'secondary'}
+              onClick={() => setTheme('system')}
+            />
           </div>
         </div>
       </Card>
       
-      <Card>
-        <h2 style={{ marginBottom: '20px' }}>Account Settings</h2>
+      {/* Preferences */}
+      <Card style={{ marginBottom: '20px' }}>
+        <h3>Preferences</h3>
         
-        <div style={settingRowStyles}>
-          <div>
-            <div style={settingLabelStyles}>Email</div>
-            <div style={settingDescriptionStyles}>
-              {currentUser?.email}
-            </div>
-          </div>
-          <button 
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Currency</label>
+          <select 
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
             style={{ 
-              backgroundColor: 'transparent', 
-              color: 'var(--accent-light)', 
-              border: 'none', 
-              cursor: 'pointer' 
-            }}
-          >
-            Change
-          </button>
-        </div>
-        
-        <div style={settingRowStyles}>
-          <div>
-            <div style={settingLabelStyles}>Password</div>
-            <div style={settingDescriptionStyles}>
-              Last changed 30 days ago
-            </div>
-          </div>
-          <button 
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: 'var(--accent-light)', 
-              border: 'none', 
-              cursor: 'pointer' 
-            }}
-          >
-            Change
-          </button>
-        </div>
-      </Card>
-      
-      <Card>
-        <h2 style={{ marginBottom: '20px' }}>Notifications</h2>
-        
-        <div style={settingRowStyles}>
-          <div>
-            <div style={settingLabelStyles}>Email Notifications</div>
-            <div style={settingDescriptionStyles}>
-              Receive email alerts for new expenses and settlements
-            </div>
-          </div>
-          <div style={toggleSwitchStyles}>
-            <div style={{...toggleSliderStyles, backgroundColor: 'var(--accent)'}}>
-              <div style={{...toggleSliderKnobStyles, left: '29px'}}></div>
-            </div>
-          </div>
-        </div>
-        
-        <div style={settingRowStyles}>
-          <div>
-            <div style={settingLabelStyles}>Push Notifications</div>
-            <div style={settingDescriptionStyles}>
-              Receive push notifications on your device
-            </div>
-          </div>
-          <div style={toggleSwitchStyles}>
-            <div style={{...toggleSliderStyles, backgroundColor: 'var(--bg-tertiary)'}}>
-              <div style={{...toggleSliderKnobStyles, left: '4px'}}></div>
-            </div>
-          </div>
-        </div>
-      </Card>
-      
-      <Card>
-        <h2 style={{ color: 'var(--error)' }}>Danger Zone</h2>
-        
-        <div style={{ marginTop: '15px' }}>
-          <button 
-            style={{ 
-              backgroundColor: 'var(--error)', 
-              color: 'white', 
-              border: 'none', 
-              padding: '10px 15px',
+              width: '100%',
+              padding: '10px 12px',
               borderRadius: '4px',
-              cursor: 'pointer' 
+              border: '1px solid var(--bg-tertiary)',
+              backgroundColor: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)'
             }}
           >
-            Delete Account
-          </button>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="JPY">JPY (¥)</option>
+            <option value="CAD">CAD ($)</option>
+            <option value="AUD">AUD ($)</option>
+          </select>
+        </div>
+        
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={emailNotifications}
+              onChange={(e) => setEmailNotifications(e.target.checked)}
+              style={{ marginRight: '10px' }}
+            />
+            Email Notifications
+          </label>
+        </div>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={pushNotifications}
+              onChange={(e) => setPushNotifications(e.target.checked)}
+              style={{ marginRight: '10px' }}
+            />
+            Push Notifications
+          </label>
+        </div>
+        
+        <Button text="Save Preferences" onClick={handleSaveSettings} />
+      </Card>
+      
+      {/* Account Actions */}
+      <Card>
+        <h3>Account</h3>
+        
+        <div style={{ marginBottom: '15px' }}>
+          <Button 
+            text="Edit Profile" 
+            onClick={() => navigate('/profile')}
+            style={{ width: '100%' }}
+          />
+        </div>
+        
+        <div style={{ marginBottom: '15px' }}>
+          <Button 
+            text="Change Password" 
+            variant="secondary"
+            onClick={() => navigate('/forgot-password')}
+            style={{ width: '100%' }}
+          />
+        </div>
+        
+        <div style={{ marginBottom: '15px' }}>
+          <Button 
+            text="Clear All Notifications" 
+            variant="secondary"
+            onClick={handleClearNotifications}
+            style={{ width: '100%' }}
+          />
+        </div>
+        
+        <div>
+          <Button 
+            text={isLoading ? "Logging out..." : "Logout"}
+            variant="danger"
+            onClick={handleLogout}
+            disabled={isLoading}
+            style={{ width: '100%' }}
+          />
         </div>
       </Card>
     </div>

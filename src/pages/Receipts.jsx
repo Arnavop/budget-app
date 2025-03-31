@@ -1,66 +1,211 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 
 const Receipts = () => {
-  // Mock receipt data for demonstration
-  const mockReceipts = [
-    { id: 1, name: 'Grocery receipt', date: '2023-04-01', uploaded: true },
-    { id: 2, name: 'Restaurant bill', date: '2023-03-28', uploaded: true },
-    { id: 3, name: 'Movie tickets', date: '2023-03-26', uploaded: true },
-  ];
+  // Since we're using mock data, we'll create some sample receipts
+  const [receipts, setReceipts] = useState([
+    {
+      id: 'receipt-1',
+      description: 'Dinner at Olive Garden',
+      date: '2023-04-15',
+      amount: 78.45,
+      imageUrl: null
+    },
+    {
+      id: 'receipt-2',
+      description: 'Grocery shopping',
+      date: '2023-04-10',
+      amount: 125.32,
+      imageUrl: null
+    }
+  ]);
+  
+  const [isUploading, setIsUploading] = useState(false);
+  const [newReceiptDescription, setNewReceiptDescription] = useState('');
+  const [newReceiptAmount, setNewReceiptAmount] = useState('');
+  const [newReceiptDate, setNewReceiptDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
+  
+  const handleAddReceipt = (e) => {
+    e.preventDefault();
+    
+    if (!newReceiptDescription || !newReceiptAmount) return;
+    
+    const newReceipt = {
+      id: `receipt-${Date.now()}`,
+      description: newReceiptDescription,
+      date: newReceiptDate,
+      amount: parseFloat(newReceiptAmount),
+      imageUrl: null
+    };
+    
+    setReceipts([newReceipt, ...receipts]);
+    
+    // Reset form
+    setNewReceiptDescription('');
+    setNewReceiptAmount('');
+    setIsUploading(false);
+  };
 
   return (
-    <div>
-      <h1 style={{ marginBottom: '20px' }}>Receipts</h1>
+    <div className="container">
+      <h1>Receipts</h1>
       
-      <Card>
-        <div style={{
-          border: '2px dashed var(--bg-tertiary)',
-          borderRadius: '4px',
-          padding: '30px',
-          textAlign: 'center',
-          marginBottom: '20px',
-          cursor: 'pointer',
-        }}>
-          <div style={{ fontSize: '36px', marginBottom: '10px' }}>📷</div>
-          <h3>Upload Receipt</h3>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Drag and drop files here or click to browse
-          </p>
-        </div>
-      </Card>
-      
-      <h2 style={{ marginBottom: '15px', marginTop: '30px' }}>Recent Receipts</h2>
-      
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '20px',
-      }}>
-        {mockReceipts.map((receipt) => (
-          <Card key={receipt.id} style={{ padding: '15px' }}>
-            <div style={{
-              width: '100%',
-              height: '120px',
-              backgroundColor: 'var(--bg-tertiary)',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '36px',
-              marginBottom: '10px',
-            }}>
-              📄
-            </div>
-            <h3 style={{ margin: '5px 0' }}>{receipt.name}</h3>
-            <p style={{ color: 'var(--text-secondary)', margin: '5px 0' }}>
-              {receipt.date}
-            </p>
-            <Button text="View Details" style={{ marginTop: '10px', width: '100%' }} />
-          </Card>
-        ))}
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p>Save receipts for your expenses</p>
+        <Button 
+          text={isUploading ? "Cancel" : "Add Receipt"} 
+          onClick={() => setIsUploading(!isUploading)}
+        />
       </div>
+      
+      {isUploading && (
+        <Card style={{ marginBottom: '20px' }}>
+          <h3>Add New Receipt</h3>
+          <form onSubmit={handleAddReceipt}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Description</label>
+              <input 
+                type="text"
+                value={newReceiptDescription}
+                onChange={(e) => setNewReceiptDescription(e.target.value)}
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--bg-tertiary)',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)'
+                }}
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Amount</label>
+              <input 
+                type="number"
+                step="0.01"
+                value={newReceiptAmount}
+                onChange={(e) => setNewReceiptAmount(e.target.value)}
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--bg-tertiary)',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)'
+                }}
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Date</label>
+              <input 
+                type="date"
+                value={newReceiptDate}
+                onChange={(e) => setNewReceiptDate(e.target.value)}
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--bg-tertiary)',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)'
+                }}
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Receipt Image</label>
+              <div
+                style={{ 
+                  width: '100%',
+                  padding: '20px',
+                  borderRadius: '4px',
+                  border: '2px dashed var(--bg-tertiary)',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-secondary)',
+                  textAlign: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                Click to upload a receipt image (mock only)
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '5px' }}>
+                Supported formats: JPG, PNG, PDF (max 10MB)
+              </p>
+            </div>
+            
+            <Button text="Save Receipt" type="submit" />
+          </form>
+        </Card>
+      )}
+      
+      {receipts.length === 0 ? (
+        <Card>
+          <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🧾</div>
+            <h3>No Receipts</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              You haven't uploaded any receipts yet
+            </p>
+            <Button 
+              text="Add Your First Receipt" 
+              onClick={() => setIsUploading(true)}
+            />
+          </div>
+        </Card>
+      ) : (
+        <div>
+          {receipts.map(receipt => (
+            <Card key={receipt.id} style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 5px 0' }}>{receipt.description}</h3>
+                  <p style={{ color: 'var(--text-secondary)', margin: '0' }}>
+                    {new Date(receipt.date).toLocaleDateString()}
+                  </p>
+                </div>
+                <div style={{ fontWeight: 'bold', fontSize: '18px' }}>
+                  ${receipt.amount.toFixed(2)}
+                </div>
+              </div>
+              {receipt.imageUrl ? (
+                <div style={{ marginTop: '15px' }}>
+                  <img 
+                    src={receipt.imageUrl}
+                    alt="Receipt"
+                    style={{ maxWidth: '100%', borderRadius: '4px' }}
+                  />
+                </div>
+              ) : (
+                <div style={{ 
+                  marginTop: '15px',
+                  padding: '10px',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  borderRadius: '4px',
+                  textAlign: 'center',
+                  color: 'var(--text-secondary)'
+                }}>
+                  No image uploaded
+                </div>
+              )}
+              <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end' }}>
+                <Button 
+                  text="Delete" 
+                  variant="text"
+                  onClick={() => setReceipts(receipts.filter(r => r.id !== receipt.id))}
+                />
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

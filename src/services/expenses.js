@@ -1,158 +1,199 @@
+// expenses.js - using mock data
+import { generateId } from './mockData';
 import { auth } from './auth';
 
-// Mock expenses data that would normally be in a database
-let expensesData = [
-  {
-    id: '1',
-    description: 'Grocery shopping',
-    amount: 45.80,
-    paidBy: 'You',
-    date: new Date(),
-    splitWith: ['Alex', 'Sam', 'Jordan'],
-    splitMethod: 'equally',
-    category: 'Food'
-  },
-  {
-    id: '2',
-    description: 'Uber ride',
-    amount: 24.50,
-    paidBy: 'Alex',
-    date: new Date(Date.now() - 86400000), // Yesterday
-    splitWith: ['You'],
-    splitMethod: 'equally',
-    category: 'Transport'
-  },
-  {
-    id: '3',
-    description: 'Movie tickets',
-    amount: 62.00,
-    paidBy: 'You',
-    date: new Date('2023-03-28'),
-    splitWith: ['Alex', 'Sam', 'Jordan'],
-    splitMethod: 'equally',
-    category: 'Entertainment'
-  },
-  {
-    id: '4',
-    description: 'Electricity bill',
-    amount: 95.20,
-    paidBy: 'You',
-    date: new Date('2023-03-26'),
-    splitWith: ['Jordan', 'Sam'],
-    splitMethod: 'equally',
-    category: 'Utilities'
-  }
-];
+// In-memory storage to simulate a database - start with empty array instead of mock data
+let expensesData = [];
 
 const expenses = {
   getAll: async () => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([...expensesData]);
-      }, 300);
-    });
+    try {
+      // Get current user from auth
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      const userId = currentUser.id;
+      
+      // Return expenses where current user is involved
+      return expensesData.filter(expense => 
+        expense.paidById === userId || expense.splitWith.includes('You')
+      );
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      throw error;
+    }
   },
   
   getById: async (id) => {
-    // Simulate API call
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const expense = expensesData.find(exp => exp.id === id);
-        if (expense) {
-          resolve({...expense});
-        } else {
-          reject(new Error('Expense not found'));
-        }
-      }, 200);
-    });
+    try {
+      const expense = expensesData.find(exp => exp.id === id);
+      
+      if (!expense) {
+        throw new Error('Expense not found');
+      }
+      
+      return expense;
+    } catch (error) {
+      console.error('Error fetching expense details:', error);
+      throw error;
+    }
   },
   
   create: async (expenseData) => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newExpense = {
-          ...expenseData,
-          id: Date.now().toString(),
-          createdAt: new Date()
-        };
-        expensesData = [newExpense, ...expensesData];
-        resolve(newExpense);
-      }, 300);
-    });
+    try {
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      const newExpense = {
+        id: generateId('expense'),
+        description: expenseData.description,
+        amount: expenseData.amount,
+        paidBy: 'You', // Default to current user
+        paidById: currentUser.id,
+        date: new Date(expenseData.date || new Date()),
+        splitWith: expenseData.splitWith || [],
+        splitMethod: expenseData.splitMethod || 'equal',
+        category: expenseData.category || 'Other',
+        notes: expenseData.notes || '',
+        isSettled: false,
+        groupId: expenseData.groupId || null,
+        updatedAt: new Date()
+      };
+      
+      // Add to our in-memory database
+      expensesData.unshift(newExpense);
+      
+      return newExpense;
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      throw error;
+    }
   },
   
   update: async (id, expenseData) => {
-    // Simulate API call
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = expensesData.findIndex(exp => exp.id === id);
-        if (index !== -1) {
-          const updatedExpense = {
-            ...expensesData[index],
-            ...expenseData,
-            updatedAt: new Date()
-          };
-          expensesData[index] = updatedExpense;
-          resolve(updatedExpense);
-        } else {
-          reject(new Error('Expense not found'));
-        }
-      }, 300);
-    });
+    try {
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      const expenseIndex = expensesData.findIndex(exp => exp.id === id);
+      
+      if (expenseIndex === -1) {
+        throw new Error('Expense not found');
+      }
+      
+      // Update the expense
+      const updatedExpense = {
+        ...expensesData[expenseIndex],
+        description: expenseData.description,
+        amount: expenseData.amount,
+        splitMethod: expenseData.splitMethod,
+        category: expenseData.category,
+        date: new Date(expenseData.date),
+        notes: expenseData.notes || '',
+        updatedAt: new Date()
+      };
+      
+      // If splitWith has changed, update it
+      if (expenseData.splitWith) {
+        updatedExpense.splitWith = expenseData.splitWith;
+      }
+      
+      // Update in our in-memory database
+      expensesData[expenseIndex] = updatedExpense;
+      
+      return updatedExpense;
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      throw error;
+    }
   },
   
   delete: async (id) => {
-    // Simulate API call
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const initialLength = expensesData.length;
-        expensesData = expensesData.filter(exp => exp.id !== id);
-        
-        if (expensesData.length < initialLength) {
-          resolve({ success: true });
-        } else {
-          reject(new Error('Expense not found'));
-        }
-      }, 200);
-    });
+    try {
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      const expenseIndex = expensesData.findIndex(exp => exp.id === id);
+      
+      if (expenseIndex === -1) {
+        throw new Error('Expense not found');
+      }
+      
+      // Remove from our in-memory database
+      expensesData.splice(expenseIndex, 1);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      throw error;
+    }
   },
   
   getByGroup: async (groupId) => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // In a real app, expenses would be linked to groups
-        // This is a simplified implementation
-        const groupExpenses = expensesData.filter(exp => 
-          exp.groupId === groupId
-        );
-        resolve(groupExpenses);
-      }, 300);
-    });
+    try {
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      // Return all expenses for this group
+      return expensesData.filter(expense => expense.groupId === groupId);
+    } catch (error) {
+      console.error('Error fetching group expenses:', error);
+      throw error;
+    }
   },
   
   getStats: async () => {
-    // Simulate API call for analytics data
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const total = expensesData.reduce((sum, exp) => sum + exp.amount, 0);
-        
-        const byCategory = expensesData.reduce((acc, exp) => {
-          acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-          return acc;
-        }, {});
-        
-        const byMonth = expensesData.reduce((acc, exp) => {
-          const month = exp.date.getMonth();
-          acc[month] = (acc[month] || 0) + exp.amount;
-          return acc;
-        }, {});
-        
-        resolve({ total, byCategory, byMonth });
-      }, 400);
-    });
+    try {
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      const userId = currentUser.id;
+      
+      // Get all expenses where the current user is involved
+      const userExpenses = expensesData.filter(expense => 
+        expense.paidById === userId || expense.splitWith.includes('You')
+      );
+      
+      // Calculate statistics
+      const total = userExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      
+      // Group by category
+      const byCategory = userExpenses.reduce((acc, exp) => {
+        acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+        return acc;
+      }, {});
+      
+      // Group by month
+      const byMonth = userExpenses.reduce((acc, exp) => {
+        const date = new Date(exp.date);
+        const month = date.getMonth();
+        acc[month] = (acc[month] || 0) + exp.amount;
+        return acc;
+      }, {});
+      
+      return { total, byCategory, byMonth };
+    } catch (error) {
+      console.error('Error fetching expense statistics:', error);
+      throw error;
+    }
+  },
+  
+  settleExpense: async (expenseId, settled = true) => {
+    try {
+      const expenseIndex = expensesData.findIndex(exp => exp.id === expenseId);
+      
+      if (expenseIndex === -1) {
+        throw new Error('Expense not found');
+      }
+      
+      // Update the settled status
+      expensesData[expenseIndex].isSettled = settled;
+      
+      return expensesData[expenseIndex];
+    } catch (error) {
+      console.error('Error settling expense:', error);
+      throw error;
+    }
   }
 };
 

@@ -1,46 +1,192 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../components/common/Card';
+import Button from '../components/common/Button';
 import { useExpenses } from '../hooks/useExpenses';
 
 const History = () => {
-  const { expenses, loading } = useExpenses();
+  const { expenses, isLoading } = useExpenses();
+  const [filter, setFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
 
-  // Sort expenses by date (newest first)
-  const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+  // Apply filters and sorting
+  useEffect(() => {
+    if (!expenses || expenses.length === 0) {
+      setFilteredExpenses([]);
+      return;
+    }
+    
+    let filtered = [...expenses];
+    
+    // Apply filter
+    if (filter === 'settled') {
+      filtered = filtered.filter(exp => exp.isSettled);
+    } else if (filter === 'unsettled') {
+      filtered = filtered.filter(exp => !exp.isSettled);
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      if (sortBy === 'date') {
+        return sortDirection === 'desc'
+          ? new Date(b.date) - new Date(a.date)
+          : new Date(a.date) - new Date(b.date);
+      } else if (sortBy === 'amount') {
+        return sortDirection === 'desc'
+          ? b.amount - a.amount
+          : a.amount - b.amount;
+      } else {
+        // Description sort
+        const descA = (a.description || '').toLowerCase();
+        const descB = (b.description || '').toLowerCase();
+        return sortDirection === 'desc'
+          ? descB.localeCompare(descA)
+          : descA.localeCompare(descB);
+      }
+    });
+    
+    setFilteredExpenses(filtered);
+  }, [expenses, filter, sortBy, sortDirection]);
+  
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  const buttonStyles = {
+    padding: '8px 12px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    marginRight: '10px',
+    border: 'none',
+    fontSize: '14px'
+  };
+
+  const activeButtonStyles = {
+    ...buttonStyles,
+    backgroundColor: 'var(--accent)',
+    color: 'white'
+  };
+
+  const inactiveButtonStyles = {
+    ...buttonStyles,
+    backgroundColor: 'var(--bg-tertiary)',
+    color: 'var(--text-primary)'
+  };
 
   return (
-    <div>
-      <h1 style={{ marginBottom: '20px' }}>History</h1>
+    <div className="container">
+      <h1>Expense History</h1>
       
-      <Card>
-        {loading ? (
-          <p>Loading expense history...</p>
-        ) : sortedExpenses.length === 0 ? (
-          <p>No expenses found.</p>
-        ) : (
-          <div>
-            {sortedExpenses.map(expense => (
-              <div 
-                key={expense.id} 
-                style={{ 
-                  padding: '15px 0',
-                  borderBottom: '1px solid var(--bg-tertiary)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div>
-                    <h3 style={{ margin: '0' }}>{expense.description}</h3>
-                    <p style={{ margin: '5px 0', color: 'var(--text-secondary)' }}>
-                      {expense.paidBy} paid • {new Date(expense.date).toLocaleDateString()}
-                    </p>
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <button 
+            style={filter === 'all' ? activeButtonStyles : inactiveButtonStyles}
+            onClick={() => setFilter('all')}
+          >
+            All
+          </button>
+          <button 
+            style={filter === 'settled' ? activeButtonStyles : inactiveButtonStyles}
+            onClick={() => setFilter('settled')}
+          >
+            Settled
+          </button>
+          <button 
+            style={filter === 'unsettled' ? activeButtonStyles : inactiveButtonStyles}
+            onClick={() => setFilter('unsettled')}
+          >
+            Unsettled
+          </button>
+        </div>
+        
+        <div>
+          <select 
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '4px',
+              border: '1px solid var(--bg-tertiary)',
+              backgroundColor: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)',
+              marginRight: '10px'
+            }}
+          >
+            <option value="date">Date</option>
+            <option value="amount">Amount</option>
+            <option value="description">Description</option>
+          </select>
+          
+          <button 
+            onClick={toggleSortDirection}
+            style={inactiveButtonStyles}
+          >
+            {sortDirection === 'desc' ? '↓ Desc' : '↑ Asc'}
+          </button>
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <div>Loading expense history...</div>
+      ) : filteredExpenses.length === 0 ? (
+        <Card>
+          <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📜</div>
+            <h3>No Expenses Found</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              {filter === 'all' 
+                ? "You don't have any expenses yet." 
+                : filter === 'settled' 
+                  ? "You don't have any settled expenses."
+                  : "You don't have any unsettled expenses."}
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <div>
+          {filteredExpenses.map(expense => (
+            <Card key={expense.id} style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                    <h3 style={{ margin: '0', marginRight: '10px' }}>{expense.description}</h3>
+                    {expense.isSettled && (
+                      <span style={{ 
+                        backgroundColor: 'var(--success-light)', 
+                        color: 'var(--success)', 
+                        padding: '2px 8px', 
+                        borderRadius: '4px', 
+                        fontSize: '12px' 
+                      }}>
+                        Settled
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontWeight: 'bold' }}>${expense.amount.toFixed(2)}</div>
+                  <p style={{ margin: '0', color: 'var(--text-secondary)' }}>
+                    {expense.paidBy} • {formatDate(expense.date)} • {expense.category}
+                  </p>
+                </div>
+                
+                <div style={{ fontWeight: 'bold', fontSize: '18px' }}>
+                  ${expense.amount.toFixed(2)}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              
+              <div style={{ marginTop: '15px', fontSize: '14px' }}>
+                <p style={{ margin: '0', color: 'var(--text-secondary)' }}>
+                  Split with: {expense.splitWith.join(', ')}
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

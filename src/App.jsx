@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
+import Header from './components/layout/Header';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import History from './pages/History';
@@ -39,12 +40,13 @@ function App() {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     
-                    {/* Add a standalone profile route */}
+                    {/* Create a separate MainLayout instance for the standalone profile route */}
                     <Route path="/profile" element={
                       <ProtectedRoute>
-                        <MainLayout>
+                        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+                          <Header />
                           <UserProfile />
-                        </MainLayout>
+                        </div>
                       </ProtectedRoute>
                     } />
                     
