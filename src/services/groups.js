@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 
-// LocalStorage key
+// LocalStorage keys
 const STORAGE_KEY = 'budget_app_groups';
+const SETTLEMENTS_STORAGE_KEY = 'budget_app_group_settlements';
 
 // Helper function to get groups from localStorage without using mock data
 const getGroupsFromStorage = () => {
@@ -19,6 +20,22 @@ const getGroupsFromStorage = () => {
   }
 };
 
+// Helper function to get settlements from localStorage
+const getSettlementsFromStorage = () => {
+  try {
+    const storedSettlements = localStorage.getItem(SETTLEMENTS_STORAGE_KEY);
+    if (storedSettlements) {
+      return JSON.parse(storedSettlements);
+    }
+    
+    // Return empty array if no settlements
+    return [];
+  } catch (error) {
+    console.error('Error loading settlements from localStorage:', error);
+    return [];
+  }
+};
+
 // Helper function to initialize local storage once
 const initializeStorage = () => {
   // Check if groups have been initialized
@@ -27,6 +44,14 @@ const initializeStorage = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     // Mark as initialized
     localStorage.setItem('groups_initialized', 'true');
+  }
+  
+  // Check if settlements have been initialized
+  if (!localStorage.getItem('group_settlements_initialized')) {
+    // Create empty settlements array
+    localStorage.setItem(SETTLEMENTS_STORAGE_KEY, JSON.stringify([]));
+    // Mark as initialized
+    localStorage.setItem('group_settlements_initialized', 'true');
   }
 };
 
@@ -39,6 +64,15 @@ const saveGroupsToStorage = (groups) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
   } catch (error) {
     console.error('Error saving groups to localStorage:', error);
+  }
+};
+
+// Helper function to save settlements to localStorage
+const saveSettlementsToStorage = (settlements) => {
+  try {
+    localStorage.setItem(SETTLEMENTS_STORAGE_KEY, JSON.stringify(settlements));
+  } catch (error) {
+    console.error('Error saving settlements to localStorage:', error);
   }
 };
 
@@ -74,6 +108,7 @@ const create = async (groupData) => {
     icon: groupData.icon || '👥',
     members: ['You', ...(groupData.members || [])], // Always include the current user
     expenses: [],
+    settlements: [],
     createdAt: new Date().toISOString()
   };
   
@@ -306,6 +341,115 @@ const removeExpense = async (groupId, expenseId) => {
   return group;
 };
 
+// Get all settlements for a specific group
+const getSettlements = async (groupId) => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  const settlements = getSettlementsFromStorage();
+  return settlements.filter(settlement => settlement.groupId === groupId);
+};
+
+// Create a new settlement for a group
+const createSettlement = async (groupId, fromUserId, toUserId, amount) => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
+  const groups = getGroupsFromStorage();
+  const group = groups.find(group => group.id === groupId);
+  
+  if (!group) {
+    throw new Error(`Group with ID ${groupId} not found`);
+  }
+  
+  // Find user names
+  const fromUser = fromUserId === 'user-1' ? 'You' : group.members.find(member => member !== 'You');
+  const toUser = toUserId === 'user-1' ? 'You' : group.members.find(member => member !== 'You');
+  
+  // Create new settlement
+  const newSettlement = {
+    id: uuidv4(),
+    groupId,
+    fromUserId,
+    toUserId,
+    fromUser,
+    toUser,
+    amount,
+    date: new Date().toISOString(),
+    completed: false
+  };
+  
+  // Add to settlements storage
+  const settlements = getSettlementsFromStorage();
+  const updatedSettlements = [...settlements, newSettlement];
+  saveSettlementsToStorage(updatedSettlements);
+  
+  // Dispatch event for real-time update
+  dispatchGroupEvent('settlementCreated', newSettlement);
+  
+  return newSettlement;
+};
+
+// Mark a settlement as completed
+const completeSettlement = async (settlementId) => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  const settlements = getSettlementsFromStorage();
+  const settlementIndex = settlements.findIndex(s => s.id === settlementId);
+  
+  if (settlementIndex === -1) {
+    throw new Error(`Settlement with ID ${settlementId} not found`);
+  }
+  
+  // Update settlement status
+  const updatedSettlement = {
+    ...settlements[settlementIndex],
+    completed: true,
+    completedDate: new Date().toISOString()
+  };
+  
+  // Update settlement in storage
+  const updatedSettlements = [
+    ...settlements.slice(0, settlementIndex),
+    updatedSettlement,
+    ...settlements.slice(settlementIndex + 1)
+  ];
+  
+  saveSettlementsToStorage(updatedSettlements);
+  
+  // Dispatch event for real-time update
+  dispatchGroupEvent('settlementCompleted', updatedSettlement);
+  
+  return updatedSettlement;
+};
+
+// Calculate balances between group members
+const calculateBalances = async (groupId) => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
+  const groups = getGroupsFromStorage();
+  const group = groups.find(g => g.id === groupId);
+  
+  if (!group) {
+    throw new Error(`Group with ID ${groupId} not found`);
+  }
+  
+  // For now, generate random balances for each member
+  // In a real app, this would be calculated from expenses
+  const balances = group.members.map(member => {
+    const isCurrentUser = member === 'You';
+    return {
+      name: member,
+      // If current user, balance is 0, otherwise random between -100 and 100
+      balance: isCurrentUser ? 0 : (Math.floor(Math.random() * 200) - 100)
+    };
+  });
+  
+  return balances;
+};
+
 const groups = {
   getAll,
   getById,
@@ -315,7 +459,11 @@ const groups = {
   addMember,
   removeMember,
   addExpense,
-  removeExpense
+  removeExpense,
+  getSettlements,
+  createSettlement,
+  completeSettlement,
+  calculateBalances
 };
 
 export default groups;

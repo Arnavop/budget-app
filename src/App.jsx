@@ -16,6 +16,7 @@ import NotFound from './pages/NotFound';
 import ExpenseDetail from './pages/ExpenseDetail';
 import GroupDetail from './pages/GroupDetail';
 import UserProfile from './pages/UserProfile';
+import Settlements from './pages/Settlements';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -40,31 +41,86 @@ function App() {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     
-                    {/* Create a separate MainLayout instance for the standalone profile route */}
+                    {/* Protected routes with MainLayout */}
                     <Route path="/profile" element={
                       <ProtectedRoute>
-                        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
-                          <Header />
+                        <MainLayout>
                           <UserProfile />
-                        </div>
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/settlements" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <Settlements />
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/expenses/:id" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <ExpenseDetail />
+                        </MainLayout>
                       </ProtectedRoute>
                     } />
                     
                     <Route path="/dashboard" element={
                       <ProtectedRoute>
-                        <MainLayout />
+                        <MainLayout>
+                          <Dashboard />
+                        </MainLayout>
                       </ProtectedRoute>
-                    }>
-                      <Route index element={<Dashboard />} />
-                      <Route path="groups" element={<Groups />} />
-                      <Route path="groups/:id" element={<GroupDetail />} />
-                      <Route path="history" element={<History />} />
-                      <Route path="analytics" element={<Analytics />} />
-                      <Route path="receipts" element={<Receipts />} />
-                      <Route path="settings" element={<Settings />} />
-                      <Route path="expenses/:id" element={<ExpenseDetail />} />
-                      <Route path="profile" element={<UserProfile />} />
-                    </Route>
+                    } />
+                    
+                    <Route path="/dashboard/groups" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <Groups />
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/dashboard/groups/:id" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <GroupDetail />
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/history" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <History />
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/analytics" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <Analytics />
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/receipts" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <Receipts />
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/settings" element={
+                      <ProtectedRoute>
+                        <MainLayout>
+                          <Settings />
+                        </MainLayout>
+                      </ProtectedRoute>
+                    } />
                     
                     <Route path="*" element={<NotFound />} />
                   </Routes>

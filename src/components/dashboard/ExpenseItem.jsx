@@ -185,9 +185,9 @@ const ExpenseItem = ({ expense }) => {
           </span>
         </div>
         <div style={expenseDetailsStyles}>
-          {expense.paidBy} paid, split {expense.splitMethod === 'equally' ? 'equally' : 'with'} 
-          {expense.paidBy !== 'You' && expense.splitWith.includes('You') ? ' with You' : ''}
-          {expense.paidBy === 'You' && expense.splitWith.length > 0 ? 
+          {expense.paidBy} paid, split {expense.splitMethod || 'equally'} 
+          {expense.paidBy !== 'You' && expense.splitWith?.includes('You') ? ' with You' : ''}
+          {expense.paidBy === 'You' && expense.splitWith?.length > 0 ? 
             ` with ${expense.splitWith.join(', ')}` : ''}
         </div>
       </div>

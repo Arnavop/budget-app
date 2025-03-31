@@ -48,8 +48,8 @@ const expenses = {
         id: generateId('expense'),
         description: expenseData.description,
         amount: expenseData.amount,
-        paidBy: 'You', // Default to current user
-        paidById: currentUser.id,
+        paidBy: expenseData.paidBy || 'You', // Use the provided paidBy or default to current user
+        paidById: expenseData.paidByUserId || currentUser.id,
         date: new Date(expenseData.date || new Date()),
         splitWith: expenseData.splitWith || [],
         splitMethod: expenseData.splitMethod || 'equal',
@@ -92,6 +92,16 @@ const expenses = {
         notes: expenseData.notes || '',
         updatedAt: new Date()
       };
+      
+      // If paidBy has changed, update it
+      if (expenseData.paidBy) {
+        updatedExpense.paidBy = expenseData.paidBy;
+      }
+      
+      // If paidByUserId has changed, update it
+      if (expenseData.paidByUserId) {
+        updatedExpense.paidById = expenseData.paidByUserId;
+      }
       
       // If splitWith has changed, update it
       if (expenseData.splitWith) {

@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import NotFound from './pages/NotFound';
 import ExpenseDetail from './pages/ExpenseDetail';
 import UserProfile from './pages/UserProfile';
+import Settlements from './pages/Settlements';
 
 const routes = [
   {
@@ -53,6 +54,13 @@ const routes = [
     exact: true,
     name: 'Receipts',
     icon: 'receipt'
+  },
+  {
+    path: '/settlements',
+    component: Settlements,
+    exact: true,
+    name: 'Settlements',
+    icon: 'account_balance_wallet'
   },
   {
     path: '/settings',

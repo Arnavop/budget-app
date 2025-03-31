@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { useUsers } from '../../hooks/useUsers';
@@ -29,8 +30,10 @@ const Summary = () => {
         const storedExpenses = localStorage.getItem(STORAGE_KEY);
         const expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
         
+        console.log("Loaded expenses:", expenses); // Debug
+        
         // Calculate total expenses
-        let total = 0;
+        let total = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
         let userOwes = 0;
         let userIsOwed = 0;
         
@@ -52,16 +55,19 @@ const Summary = () => {
         
         // Process expenses to calculate balances
         expenses.forEach(expense => {
-          // Add to total
-          total += expense.amount;
+          if (!expense.amount) return; // Skip if no amount
           
-          const paidByCurrentUser = expense.paidBy === 'You';
-          const splitCount = expense.splitWith.length + 1; // +1 for person who paid
-          const splitAmount = expense.amount / splitCount;
+          const amount = parseFloat(expense.amount);
           
-          if (paidByCurrentUser) {
-            // Current user paid, so others owe them
-            expense.splitWith.forEach(userName => {
+          // Get split count and amount per person
+          let splitCount = (expense.splitWith?.length || 0) + 1; // +1 for the payer
+          if (splitCount < 1) splitCount = 1; // Ensure at least 1 for division
+          
+          const splitAmount = amount / splitCount;
+          
+          if (expense.paidBy === 'You') {
+            // Current user paid, others owe them
+            expense.splitWith?.forEach(userName => {
               // Find user ID
               const user = usersList?.find(u => u.name === userName);
               if (user && userBalances[user.id]) {
@@ -71,18 +77,38 @@ const Summary = () => {
               }
             });
           } else {
-            // Someone else paid and current user might be part of split
-            if (expense.splitWith.includes('You')) {
-              // Find who paid
-              const paidByUser = usersList?.find(u => u.name === expense.paidBy);
-              if (paidByUser && userBalances[paidByUser.id]) {
-                // Current user owes the person who paid
-                userBalances[paidByUser.id].balance -= splitAmount;
-                userOwes += splitAmount;
+            // Someone else paid - this is where the issue is happening
+            const paidByUser = usersList?.find(u => u.name === expense.paidBy);
+            
+            if (paidByUser && userBalances[paidByUser.id]) {
+              // If the expense has split information
+              if (expense.splitWith) {
+                // Check if current user is in the split
+                if (expense.splitWith.includes('You')) {
+                  // Current user owes the person who paid
+                  const userSplitAmount = splitAmount; // Each person owes this amount
+                  userBalances[paidByUser.id].balance -= userSplitAmount;
+                  userOwes += userSplitAmount;
+                  
+                  // For debugging
+                  console.log(`Added debt to ${paidByUser.name}: ${userSplitAmount}`);
+                }
+              } else {
+                // Fallback if splitWith is missing - assume you're part of the split
+                // This handles potential inconsistencies in the expense data
+                const fallbackSplitAmount = amount / 2; // Assume split between payer and you
+                userBalances[paidByUser.id].balance -= fallbackSplitAmount;
+                userOwes += fallbackSplitAmount;
+                
+                // For debugging
+                console.log(`Fallback: Added debt to ${paidByUser.name}: ${fallbackSplitAmount}`);
               }
             }
           }
         });
+        
+        console.log("Calculated balances:", userBalances); // Debug
+        console.log("User owes:", userOwes, "User is owed:", userIsOwed); // Debug
         
         // Set total expenses
         setTotalExpenses(total);
@@ -98,7 +124,7 @@ const Summary = () => {
         const userSettlements = await users.getSettlements();
         setSettlements(userSettlements.filter(s => !s.completed));
         
-        // Optionally: Listen for expense changes to update balances
+        // Listen for expense changes to update balances
         const handleExpenseChange = () => {
           fetchData();
         };
@@ -106,6 +132,16 @@ const Summary = () => {
         window.addEventListener('expenseAdded', handleExpenseChange);
         window.addEventListener('expenseDeleted', handleExpenseChange);
         window.addEventListener('expenseUpdated', handleExpenseChange);
+
+        const dispatchExpenseAddedEvent = (expense) => {
+          // Create and dispatch custom event with expense data
+          const event = new CustomEvent('expenseAdded', { 
+            detail: expense,
+            bubbles: true,  // Make sure event bubbles
+            cancelable: true
+          });
+          window.dispatchEvent(event);
+        };
         
         return () => {
           window.removeEventListener('expenseAdded', handleExpenseChange);
@@ -122,6 +158,12 @@ const Summary = () => {
     fetchData();
   }, [currentUser, usersList]);
 
+  // Helper to check if we have any data
+  const hasData = () => {
+    return balances.some(balance => balance.balance !== 0) || userBalance !== 0;
+  };
+
+  // Rest of the component remains unchanged
   const handleRemind = async (settlement) => {
     try {
       // Create a notification activity using the activities service
@@ -214,10 +256,16 @@ const Summary = () => {
   
   const balanceListItemStyles = {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
     padding: '10px 0',
     borderBottom: '1px solid var(--bg-tertiary)'
+  };
+  
+  const balanceRowStyles = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '4px'
   };
   
   const balanceNameStyles = {
@@ -234,6 +282,20 @@ const Summary = () => {
   const balanceActionsStyles = {
     display: 'flex',
     alignItems: 'center'
+  };
+
+  const settlementInstructionStyles = {
+    fontSize: '14px',
+    color: 'var(--text-secondary)',
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '8px',
+    paddingLeft: '4px'
+  };
+
+  const arrowStyles = {
+    marginRight: '8px',
+    marginLeft: '8px',
   };
   
   const actionButtonStyles = {
@@ -260,6 +322,22 @@ const Summary = () => {
     gap: '10px'
   };
   
+  const footerLinkStyles = {
+    display: 'block',
+    textAlign: 'center',
+    color: 'var(--accent)',
+    textDecoration: 'none',
+    marginTop: '15px',
+    padding: '10px',
+    borderTop: '1px solid var(--bg-tertiary)',
+  };
+  
+  const emptyStateStyles = {
+    textAlign: 'center',
+    padding: '20px',
+    color: 'var(--text-secondary)',
+  };
+
   return (
     <Card>
       <div style={tabContainerStyles}>
@@ -278,7 +356,7 @@ const Summary = () => {
       </div>
       
       {loading ? (
-        <div>Loading...</div>
+        <div style={emptyStateStyles}>Loading balances...</div>
       ) : activeTab === 'balances' ? (
         <div>
           <div style={userBalanceStyles}>
@@ -296,36 +374,66 @@ const Summary = () => {
               ? 'You are owed money' 
               : userBalance < 0 
                 ? 'You owe money' 
-                : 'You are all settled up'}
+                : hasData() ? 'You are all settled up' : 'No expenses yet'}
           </div>
           
-          {balances.length > 0 && (
+          {balances.length > 0 ? (
             <div>
               {balances.map((balance) => (
                 <div key={balance.userId} style={balanceListItemStyles}>
-                  <span style={balanceNameStyles}>{balance.name}</span>
-                  <div style={balanceActionsStyles}>
-                    <div style={balanceAmountStyles}>
-                      {balance.balance > 0 ? (
-                        <span style={{ color: 'var(--success)' }}>
-                          +${balance.balance.toFixed(2)}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--error)' }}>
-                          ${balance.balance.toFixed(2)}
-                        </span>
+                  <div style={balanceRowStyles}>
+                    <span style={balanceNameStyles}>{balance.name}</span>
+                    <div style={balanceActionsStyles}>
+                      <div style={balanceAmountStyles}>
+                        {balance.balance > 0 ? (
+                          <span style={{ color: 'var(--success)' }}>
+                            +${balance.balance.toFixed(2)}
+                          </span>
+                        ) : balance.balance < 0 ? (
+                          <span style={{ color: 'var(--error)' }}>
+                            ${balance.balance.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span>$0.00</span>
+                        )}
+                      </div>
+                      {balance.balance !== 0 && (
+                        <button 
+                          style={actionButtonStyles}
+                          onClick={() => handleCreateSettlement(balance.userId, balance.balance)}
+                        >
+                          Settle Up
+                        </button>
                       )}
                     </div>
-                    <button 
-                      style={actionButtonStyles}
-                      onClick={() => handleCreateSettlement(balance.userId, balance.balance)}
-                    >
-                      Settle Up
-                    </button>
                   </div>
+                  
+                  {balance.balance !== 0 && (
+                    <div style={settlementInstructionStyles}>
+                      {balance.balance > 0 ? (
+                        <>
+                          <span>{balance.name}</span>
+                          <span style={arrowStyles}>→</span>
+                          <span>You</span>
+                          <span style={arrowStyles}>•</span>
+                          <span>${balance.balance.toFixed(2)}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>You</span>
+                          <span style={arrowStyles}>→</span>
+                          <span>{balance.name}</span>
+                          <span style={arrowStyles}>•</span>
+                          <span>${Math.abs(balance.balance).toFixed(2)}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+          ) : (
+            <div style={emptyStateStyles}>No users to settle with</div>
           )}
         </div>
       ) : (
@@ -342,7 +450,7 @@ const Summary = () => {
           </div>
           
           {settlements.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+            <div style={emptyStateStyles}>
               No outstanding settlements
             </div>
           ) : (
@@ -386,6 +494,11 @@ const Summary = () => {
           )}
         </div>
       )}
+      
+      {/* Link to Settlements page */}
+      <Link to="/settlements" style={footerLinkStyles}>
+        View All Settlements →
+      </Link>
     </Card>
   );
 };

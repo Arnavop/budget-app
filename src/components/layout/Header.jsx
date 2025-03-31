@@ -1,12 +1,27 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const Header = () => {
+  const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [activePage, setActivePage] = useState('dashboard');
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Determine active page based on current path
+  const getActivePage = () => {
+    const path = location.pathname;
+    if (path.includes('/dashboard')) return 'dashboard';
+    if (path.includes('/groups')) return 'groups';
+    if (path.includes('/history')) return 'history';
+    if (path.includes('/analytics')) return 'analytics';
+    if (path.includes('/receipts')) return 'receipts';
+    if (path.includes('/settlements')) return 'settlements';
+    if (path.includes('/settings')) return 'settings';
+    return 'dashboard';
+  };
+  
+  const activePage = getActivePage();
 
   const headerStyles = {
     display: 'flex',
@@ -98,11 +113,31 @@ const Header = () => {
   };
 
   const handleNavClick = (page) => {
-    setActivePage(page);
-    if (page === 'dashboard') {
-      navigate('/dashboard');
-    } else {
-      navigate(`/dashboard/${page}`);
+    // Use the correct paths for each page
+    switch(page) {
+      case 'dashboard':
+        navigate('/dashboard');
+        break;
+      case 'groups':
+        navigate('/dashboard/groups');
+        break;
+      case 'history':
+        navigate('/history');
+        break;
+      case 'analytics':
+        navigate('/analytics');
+        break;
+      case 'receipts':
+        navigate('/receipts');
+        break;
+      case 'settlements':
+        navigate('/settlements');
+        break;
+      case 'settings':
+        navigate('/settings');
+        break;
+      default:
+        navigate('/dashboard');
     }
   };
 
@@ -153,6 +188,12 @@ const Header = () => {
           onClick={() => handleNavClick('receipts')}
         >
           Receipts
+        </div>
+        <div 
+          style={navItemStyles(activePage === 'settlements')} 
+          onClick={() => handleNavClick('settlements')}
+        >
+          Settlements
         </div>
         <div 
           style={navItemStyles(activePage === 'settings')} 

@@ -27,16 +27,31 @@ const AddExpenseForm = ({ onShowFullForm }) => {
     try {
       setLoading(true);
       
-      // Default to splitting with all users except the current user ("You")
-      const splitWithUsers = users ? 
-        users.filter(user => user.name !== 'You').map(user => user.name) : 
-        ['Alex', 'Sam', 'Jordan']; // Fallback if no users loaded
+      // Extract the person who paid (remove " paid" suffix)
+      const payer = paidBy.replace(' paid', '');
+      
+      // Create appropriate splitWith array based on who paid
+      let splitWithUsers;
+      
+      if (payer === 'You') {
+        // If you paid, split with everyone else
+        splitWithUsers = users ? 
+          users.filter(user => user.name !== 'You').map(user => user.name) : 
+          ['Alex', 'Sam', 'Jordan']; // Fallback if no users loaded
+      } else {
+        // If someone else paid, include "You" in the split
+        splitWithUsers = users ?
+          users.filter(user => user.name !== payer && user.name !== 'You')
+            .map(user => user.name)
+            .concat(['You']) :
+          ['You']; // Always include yourself in the split
+      }
       
       const newExpense = await addExpense({
         description,
         amount: parseFloat(amount),
-        paidByName: paidBy.replace(' paid', ''), // Convert "You paid" to "You"
-        paidByUserId: paidBy === 'You paid' ? currentUser.id : getUserId(paidBy),
+        paidBy: payer,
+        paidByUserId: payer === 'You' ? currentUser.id : getUserId(payer),
         date: new Date(),
         splitWith: splitWithUsers,
         splitMethod: 'equal',
@@ -97,10 +112,7 @@ const AddExpenseForm = ({ onShowFullForm }) => {
     window.dispatchEvent(event);
   };
 
-  const getUserId = (paidByName) => {
-    // Extract user name without " paid" suffix
-    const userName = paidByName.replace(' paid', '');
-    
+  const getUserId = (userName) => {
     // Find matching user and return their ID
     const user = users.find(u => u.name === userName);
     return user ? user.id : null;
