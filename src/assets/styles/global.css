@@ -1,0 +1,74 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .expense-form {
+    grid-template-columns: 1fr 100px;
+    grid-template-rows: auto auto;
+  }
+  
+  .expense-form input:first-child {
+    grid-column: 1 / 3;
+  }
+  
+  .expense-item {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+  
+  .expense-desc {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+  }
+  
+  .expense-amount {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+  }
+  
+  .expense-date {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+  }
+  
+  .expense-actions {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+  }
+  
+  nav {
+    display: none;
+  }
+  
+  .mobile-menu {
+    display: flex;
+    font-size: 24px;
+    cursor: pointer;
+  }
+}
