@@ -22,7 +22,6 @@ body {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* Mobile Responsiveness */
 @media (max-width: 768px) {
   .main-content {
     grid-template-columns: 1fr;

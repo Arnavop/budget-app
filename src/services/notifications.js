@@ -1,8 +1,6 @@
-// notifications.js - using mock data
 import { generateId } from './mockData';
 import { auth } from './auth';
 
-// In-memory storage to simulate a database
 let notificationsData = [
   {
     id: 'notification-1',
@@ -42,7 +40,6 @@ const notifications = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Return notifications for the current user, sorted by date (newest first)
       return notificationsData
         .filter(notif => notif.userId === currentUser.id)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -68,7 +65,6 @@ const notifications = {
         createdAt: new Date()
       };
       
-      // Add to our in-memory database
       notificationsData.unshift(newNotification);
       
       return newNotification;
@@ -91,7 +87,6 @@ const notifications = {
         throw new Error('Notification not found or not authorized');
       }
       
-      // Mark as read
       notificationsData[notificationIndex].read = true;
       
       return notificationsData[notificationIndex];
@@ -114,7 +109,6 @@ const notifications = {
         throw new Error('Notification not found or not authorized');
       }
       
-      // Remove from our in-memory database
       notificationsData.splice(notificationIndex, 1);
       
       return { success: true };
@@ -129,7 +123,6 @@ const notifications = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Remove all notifications for the current user
       notificationsData = notificationsData.filter(n => n.userId !== currentUser.id);
       
       return { success: true };

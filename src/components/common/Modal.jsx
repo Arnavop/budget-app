@@ -10,7 +10,6 @@ const Modal = ({ isOpen, onClose, title, children, style }) => {
     
     document.addEventListener('keydown', handleEsc);
     
-    // Prevent body scrolling when modal is open
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {

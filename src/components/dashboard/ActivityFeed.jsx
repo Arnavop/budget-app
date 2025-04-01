@@ -11,29 +11,23 @@ const ActivityFeed = () => {
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
 
-  // Function to load activities and create them based on expense data
   const loadActivities = async () => {
     if (!currentUser) return;
     
     try {
       setLoading(true);
       
-      // First, try to get activities from localStorage
       const storedActivities = localStorage.getItem(ACTIVITY_STORAGE_KEY);
       let activitiesData = storedActivities ? JSON.parse(storedActivities) : [];
       
-      // If no activities found, create from expenses and service
       if (activitiesData.length === 0) {
-        // Get some activities from service
         const serviceActivities = await activities.getAll();
         activitiesData = serviceActivities;
         
-        // Also create activities based on stored expenses
         const storedExpenses = localStorage.getItem(STORAGE_KEY);
         if (storedExpenses) {
           const expenses = JSON.parse(storedExpenses);
           
-          // Create an "added" activity for each expense
           const expenseActivities = expenses.map(expense => ({
             id: `expense-${expense.id}`,
             action: 'created',
@@ -45,29 +39,22 @@ const ActivityFeed = () => {
               description: expense.description,
               amount: expense.amount
             },
-            createdAt: expense.date // Use the expense date as activity date
+            createdAt: expense.date
           }));
           
-          // Combine with service activities
           activitiesData = [...expenseActivities, ...activitiesData];
         }
         
-        // Save to localStorage
         localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(activitiesData));
       }
       
-      // Format activities
       const formattedActivities = await Promise.all(activitiesData.map(async (activity) => {
-        // Determine if this activity was by the current user
         const isCurrentUser = activity.userId === currentUser.id;
         
-        // Use the actor name from activity data
         const actor = isCurrentUser ? 'You' : (activity.user?.name || 'Someone');
         
-        // Different formatting based on action and resource type
         let title = '';
         if (activity.resourceType === 'expense') {
-          // Get expense name from metadata
           const expenseName = activity.metadata?.description || 'an expense';
           
           switch (activity.action) {
@@ -84,7 +71,6 @@ const ActivityFeed = () => {
               title = `${actor} ${activity.action} expense "${expenseName}"`;
           }
         } else if (activity.resourceType === 'group') {
-          // Get group name from metadata
           const groupName = activity.metadata?.name || 'a group';
           
           switch (activity.action) {
@@ -101,11 +87,9 @@ const ActivityFeed = () => {
               title = `${actor} ${activity.action} group "${groupName}"`;
           }
         } else if (activity.resourceType === 'settlement') {
-          // Get settlement data
           const amount = activity.metadata?.amount ?? 0;
           
           if (activity.action === 'created') {
-            // Determine if current user is sender or receiver
             const fromUserId = activity.metadata?.fromUserId;
             const toUserId = activity.metadata?.toUserId;
             
@@ -126,7 +110,6 @@ const ActivityFeed = () => {
             title = `${actor} ${activity.action} settlement`;
           }
         } else {
-          // Generic fallback
           title = `${actor} ${activity.action} ${activity.resourceType}`;
         }
         
@@ -137,7 +120,6 @@ const ActivityFeed = () => {
         };
       }));
       
-      // Sort activities by date (newest first)
       formattedActivities.sort((a, b) => b.timestamp - a.timestamp);
       
       setActivityItems(formattedActivities);
@@ -152,9 +134,7 @@ const ActivityFeed = () => {
     loadActivities();
   }, [currentUser]);
 
-  // Create function to add new activity
   const addActivity = (activity) => {
-    // Format the new activity 
     const isCurrentUser = activity.userId === currentUser?.id;
     const actor = isCurrentUser ? 'You' : (activity.user?.name || 'Someone');
     
@@ -183,32 +163,27 @@ const ActivityFeed = () => {
       timestamp: new Date(activity.createdAt || new Date())
     };
     
-    // Add to activity list
     setActivityItems(prev => {
       const updated = [formattedActivity, ...prev];
-      // Sort and keep only the most recent ones
       return updated
         .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 20); // Keep a reasonable number
+        .slice(0, 20);
     });
     
-    // Update localStorage
     try {
       const storedActivities = localStorage.getItem(ACTIVITY_STORAGE_KEY);
       const activities = storedActivities ? JSON.parse(storedActivities) : [];
-      activities.unshift(activity); // Add to beginning
+      activities.unshift(activity);
       localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(activities.slice(0, 50)));
     } catch (error) {
       console.error('Error updating activities in localStorage:', error);
     }
   };
   
-  // Listen for expense events to add corresponding activities
   useEffect(() => {
     const handleExpenseAdded = (event) => {
       const expense = event.detail;
       
-      // Create an activity for the new expense
       const activity = {
         id: `expense-${expense.id}-${Date.now()}`,
         action: 'created',
@@ -229,7 +204,6 @@ const ActivityFeed = () => {
     const handleExpenseUpdated = (event) => {
       const expense = event.detail;
       
-      // Create an activity for the updated expense
       const activity = {
         id: `expense-update-${expense.id}-${Date.now()}`,
         action: 'updated',
@@ -250,14 +224,13 @@ const ActivityFeed = () => {
     const handleExpenseDeleted = (event) => {
       const { id } = event.detail;
       
-      // Since we don't have the expense details anymore, create a generic activity
       const activity = {
         id: `expense-delete-${id}-${Date.now()}`,
         action: 'deleted',
         resourceType: 'expense',
         resourceId: id,
         userId: currentUser?.id,
-        user: { name: 'You' }, // Assume current user did the deletion
+        user: { name: 'You' },
         metadata: {},
         createdAt: new Date().toISOString()
       };
@@ -276,13 +249,11 @@ const ActivityFeed = () => {
     };
   }, [currentUser]);
 
-  // Card style
   const cardStyle = {
     padding: 0,
     overflow: 'hidden'
   };
   
-  // Activity item styles
   const itemStyles = {
     padding: '15px 20px',
     borderBottom: '1px solid var(--bg-tertiary)',

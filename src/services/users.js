@@ -1,8 +1,6 @@
-// users.js - using mock data
 import { mockUsers, mockSettlements, generateId } from './mockData';
 import { auth } from './auth';
 
-// In-memory storage to simulate a database
 let usersData = [...mockUsers];
 let settlementsData = [...mockSettlements];
 
@@ -12,7 +10,6 @@ const users = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Return all users, with current user marked as "You"
       return usersData.map(user => ({
         ...user,
         name: user.id === currentUser.id ? 'You' : user.name
@@ -92,7 +89,6 @@ const users = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Make sure the user is only updating their own profile
       if (id !== currentUser.id) throw new Error('Not authorized to update this profile');
       
       const userIndex = usersData.findIndex(u => u.id === id);
@@ -101,7 +97,6 @@ const users = {
         throw new Error('User not found');
       }
       
-      // Update user
       const updatedUser = {
         ...usersData[userIndex],
         name: userData.name,
@@ -133,7 +128,6 @@ const users = {
       
       const targetUserId = userId || currentUser.id;
       
-      // For mock data, use a random balance amount between -100 and 100
       const balance = Math.floor(Math.random() * 200) - 100;
       
       return {
@@ -152,7 +146,6 @@ const users = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Generate mock balances for all users
       const balances = usersData.map(user => {
         const balance = user.id === currentUser.id ? 0 : (Math.floor(Math.random() * 200) - 100);
         return {
@@ -174,7 +167,6 @@ const users = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Return settlements where the current user is involved
       return settlementsData.filter(settlement => 
         settlement.fromUserId === currentUser.id || settlement.toUserId === currentUser.id
       );

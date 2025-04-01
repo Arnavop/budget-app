@@ -11,7 +11,6 @@ export const GroupProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { currentUser } = useAuth();
 
-  // Fetch groups when user changes
   useEffect(() => {
     if (!currentUser) {
       setGroups([]);
@@ -37,9 +36,7 @@ export const GroupProvider = ({ children }) => {
     fetchGroups();
   }, [currentUser]);
 
-  // Listen for real-time updates via custom events
   useEffect(() => {
-    // Handler for new group added
     const handleGroupAdded = (event) => {
       const newGroup = event.detail;
       setGroups(prev => {
@@ -49,11 +46,9 @@ export const GroupProvider = ({ children }) => {
         return prev;
       });
       
-      // Create activity for the new group
       createActivity('created', 'group', newGroup.id, { name: newGroup.name });
     };
     
-    // Handler for group updated
     const handleGroupUpdated = (event) => {
       const updatedGroup = event.detail;
       setGroups(prev => 
@@ -61,41 +56,35 @@ export const GroupProvider = ({ children }) => {
       );
     };
     
-    // Handler for group deleted
     const handleGroupDeleted = (event) => {
       const { id } = event.detail;
       setGroups(prev => prev.filter(group => group.id !== id));
     };
     
-    // Handler for member added to group
     const handleMemberAdded = (event) => {
       const { group, memberName } = event.detail;
       setGroups(prev => 
         prev.map(g => g.id === group.id ? group : g)
       );
       
-      // Create activity for member added
       createActivity('added_member', 'group', group.id, { 
         name: group.name, 
         memberName 
       });
     };
     
-    // Handler for member removed from group
     const handleMemberRemoved = (event) => {
       const { group, memberName } = event.detail;
       setGroups(prev => 
         prev.map(g => g.id === group.id ? group : g)
       );
       
-      // Create activity for member removed
       createActivity('removed_member', 'group', group.id, { 
         name: group.name, 
         memberName 
       });
     };
     
-    // Helper function to create activities
     const createActivity = async (action, resourceType, resourceId, metadata) => {
       try {
         await activities.create({
@@ -109,14 +98,12 @@ export const GroupProvider = ({ children }) => {
       }
     };
     
-    // Register event listeners
     window.addEventListener('groupAdded', handleGroupAdded);
     window.addEventListener('groupUpdated', handleGroupUpdated);
     window.addEventListener('groupDeleted', handleGroupDeleted);
     window.addEventListener('groupMemberAdded', handleMemberAdded);
     window.addEventListener('groupMemberRemoved', handleMemberRemoved);
     
-    // Cleanup
     return () => {
       window.removeEventListener('groupAdded', handleGroupAdded);
       window.removeEventListener('groupUpdated', handleGroupUpdated);
@@ -126,11 +113,9 @@ export const GroupProvider = ({ children }) => {
     };
   }, [currentUser]);
 
-  // CRUD operations
   const addGroup = async (groupData) => {
     try {
       const newGroup = await groupService.create(groupData);
-      // Note: We're not manually updating state here because the event listener will handle it
       return newGroup;
     } catch (err) {
       console.error("Error adding group:", err);
@@ -141,7 +126,6 @@ export const GroupProvider = ({ children }) => {
   const updateGroup = async (id, groupData) => {
     try {
       const updated = await groupService.update(id, groupData);
-      // Note: We're not manually updating state here because the event listener will handle it
       return updated;
     } catch (err) {
       console.error("Error updating group:", err);
@@ -152,7 +136,6 @@ export const GroupProvider = ({ children }) => {
   const deleteGroup = async (id) => {
     try {
       await groupService.delete(id);
-      // Note: We're not manually updating state here because the event listener will handle it
       return true;
     } catch (err) {
       console.error("Error deleting group:", err);
@@ -162,11 +145,9 @@ export const GroupProvider = ({ children }) => {
 
   const getGroupById = async (id) => {
     try {
-      // First check if we already have the group loaded in state
       const existingGroup = groups.find(group => group.id === id);
       if (existingGroup) return existingGroup;
       
-      // If not found locally, fetch it from the service
       return await groupService.getById(id);
     } catch (err) {
       console.error("Error fetching group details:", err);
@@ -177,7 +158,6 @@ export const GroupProvider = ({ children }) => {
   const addGroupMember = async (groupId, memberName) => {
     try {
       await groupService.addMember(groupId, memberName);
-      // Note: We're not manually updating state here because the event listener will handle it
       return true;
     } catch (err) {
       console.error("Error adding group member:", err);
@@ -188,7 +168,6 @@ export const GroupProvider = ({ children }) => {
   const removeGroupMember = async (groupId, memberName) => {
     try {
       await groupService.removeMember(groupId, memberName);
-      // Note: We're not manually updating state here because the event listener will handle it
       return true;
     } catch (err) {
       console.error("Error removing group member:", err);

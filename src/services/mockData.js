@@ -1,6 +1,3 @@
-// Mock data for the budget app
-// This file contains static data to replace Supabase integration
-
 export const mockUsers = [
   {
     id: 'user-1',
@@ -263,7 +260,6 @@ export const mockActivities = [
   }
 ];
 
-// Helper function to generate unique IDs
 export const generateId = (prefix) => {
   return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
 };

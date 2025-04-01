@@ -12,26 +12,21 @@ const ExpenseList = () => {
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
 
-  // Function to load expenses from localStorage and service
   const loadExpenses = async () => {
     if (!currentUser) return;
     
     try {
       setLoading(true);
       
-      // Try to get expenses from localStorage first
       const storedExpenses = localStorage.getItem(STORAGE_KEY);
       const parsedExpenses = storedExpenses ? JSON.parse(storedExpenses) : [];
       
-      // Also get from service as fallback
       let allExpenses = parsedExpenses;
       if (parsedExpenses.length === 0) {
         allExpenses = await expenses.getAll();
-        // Save to localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(allExpenses));
       }
       
-      // Sort by date and take only the first 5
       const sorted = allExpenses
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 5);
@@ -48,13 +43,11 @@ const ExpenseList = () => {
     loadExpenses();
   }, [currentUser]);
 
-  // Listen for custom event when a new expense is added
   useEffect(() => {
     const handleNewExpense = (event) => {
       const newExpense = event.detail;
       
       setRecentExpenses(prevExpenses => {
-        // Add new expense to the list and sort
         const updatedExpenses = [newExpense, ...prevExpenses]
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 5);
@@ -62,7 +55,6 @@ const ExpenseList = () => {
       });
     };
     
-    // Add event listener
     window.addEventListener('expenseAdded', handleNewExpense);
     
     // Cleanup
@@ -71,29 +63,23 @@ const ExpenseList = () => {
     };
   }, []);
 
-  // Listen for custom event when an expense is deleted
   useEffect(() => {
     const handleDeletedExpense = (event) => {
       const { id: deletedId } = event.detail;
       
       setRecentExpenses(prevExpenses => {
-        // Remove deleted expense from the list
         const filteredExpenses = prevExpenses.filter(expense => expense.id !== deletedId);
         
-        // If we now have fewer than 5 expenses, we might want to load a new one
         if (filteredExpenses.length < 5) {
           const storedExpenses = localStorage.getItem(STORAGE_KEY);
           if (storedExpenses) {
             const allStoredExpenses = JSON.parse(storedExpenses);
-            // Find expenses not currently in our list
             const potentialExpenses = allStoredExpenses.filter(
               exp => !filteredExpenses.some(fExp => fExp.id === exp.id)
             );
             
             if (potentialExpenses.length > 0) {
-              // Add the next expense that's not already in the list
               filteredExpenses.push(potentialExpenses[0]);
-              // Sort again
               filteredExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
             }
           }

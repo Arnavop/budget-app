@@ -1,7 +1,5 @@
-// Auth service using Supabase
 import { supabase } from '../supabase/client';
 
-// Helper function to persist user state to localStorage
 const saveUserToLocalStorage = (user) => {
   if (user) {
     localStorage.setItem('currentUser', JSON.stringify(user));
@@ -10,7 +8,6 @@ const saveUserToLocalStorage = (user) => {
   }
 };
 
-// Helper function to get user from localStorage
 const getUserFromLocalStorage = () => {
   const storedUser = localStorage.getItem('currentUser');
   return storedUser ? JSON.parse(storedUser) : null;
@@ -29,7 +26,6 @@ const auth = {
       if (error) throw error;
       
       if (data && data.user) {
-        // Fetch the user's profile from the profiles table
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -73,28 +69,26 @@ const auth = {
       if (error) throw error;
       
       if (data && data.user) {
-        // Explicitly create profile record after successful signup
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: data.user.id,
             name: name,
             email: email,
-            color: 'blue', // Default color
+            color: 'blue',
             created_at: new Date(),
             updated_at: new Date()
           });
           
         if (profileError) {
           console.error('Profile creation error:', profileError);
-          // Continue anyway since the auth user was created
         }
         
         const user = {
           id: data.user.id,
           name: name,
           email: data.user.email,
-          color: 'blue', // Default color
+          color: 'blue',
           avatar: name.charAt(0).toUpperCase()
         };
         
@@ -112,7 +106,6 @@ const auth = {
   
   updateProfile: async (profileData) => {
     try {
-      // Get the current Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       
@@ -131,7 +124,6 @@ const auth = {
         
       if (error) throw error;
       
-      // Update local user data
       const updatedUser = {
         ...(auth.currentUser || {}),
         id: userId,
@@ -165,19 +157,15 @@ const auth = {
   
   getCurrentUser: async () => {
     try {
-      // First check if we already have the current user in memory
       if (auth.currentUser) return auth.currentUser;
       
-      // Then check localStorage
       const localUser = getUserFromLocalStorage();
       if (localUser) {
         auth.currentUser = localUser;
-        // Validate with Supabase session but return immediately to avoid loading state
         auth.validateSession();
         return localUser;
       }
       
-      // Otherwise check if there's an active session
       return await auth.validateSession();
     } catch (error) {
       console.error('Get current user error:', error);
@@ -185,19 +173,16 @@ const auth = {
     }
   },
   
-  // Separate method to validate the session
   validateSession: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // No session found, clear any stale user data
         auth.currentUser = null;
         saveUserToLocalStorage(null);
         return null;
       }
       
-      // Fetch the user's profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -206,7 +191,6 @@ const auth = {
         
       if (profileError) {
         console.error('Profile fetch error:', profileError);
-        // If we can't get profile data but have a session, create a minimal user object
         const user = {
           id: session.user.id,
           email: session.user.email,
@@ -220,7 +204,6 @@ const auth = {
         return user;
       }
       
-      // We have both session and profile data
       const user = {
         id: session.user.id,
         name: profileData.name,
@@ -239,7 +222,6 @@ const auth = {
   },
   
   onAuthStateChanged: (callback) => {
-    // First, return user from localStorage to prevent loading flicker
     const localUser = getUserFromLocalStorage();
     if (localUser) {
       setTimeout(() => {
@@ -247,18 +229,15 @@ const auth = {
       }, 0);
     }
     
-    // Then, validate with Supabase
     auth.getCurrentUser().then(user => {
       callback(user);
     });
     
-    // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event);
         
         if (event === 'SIGNED_IN' && session) {
-          // Fetch the user's profile
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -278,7 +257,6 @@ const auth = {
             saveUserToLocalStorage(user);
             callback(user);
           } else {
-            // Fallback if profile not found
             const user = {
               id: session.user.id,
               email: session.user.email,
@@ -296,11 +274,9 @@ const auth = {
           saveUserToLocalStorage(null);
           callback(null);
         } else if (event === 'TOKEN_REFRESHED' && session) {
-          // Session token refreshed, maintain the current user
           if (auth.currentUser) {
             callback(auth.currentUser);
           } else {
-            // If somehow we don't have the current user, fetch it
             const user = await auth.getCurrentUser();
             callback(user);
           }
@@ -308,13 +284,11 @@ const auth = {
       }
     );
     
-    // Return unsubscribe function
     return () => {
       authListener.subscription.unsubscribe();
     };
   },
   
-  // Add password reset request function
   resetPassword: async (email) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -330,7 +304,6 @@ const auth = {
     }
   },
   
-  // Update password function
   updatePassword: async (newPassword) => {
     try {
       const { error } = await supabase.auth.updateUser({

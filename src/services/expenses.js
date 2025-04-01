@@ -1,20 +1,16 @@
-// expenses.js - using mock data
 import { generateId } from './mockData';
 import { auth } from './auth';
 
-// In-memory storage to simulate a database - start with empty array instead of mock data
 let expensesData = [];
 
 const expenses = {
   getAll: async () => {
     try {
-      // Get current user from auth
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
       const userId = currentUser.id;
       
-      // Return expenses where current user is involved
       return expensesData.filter(expense => 
         expense.paidById === userId || expense.splitWith.includes('You')
       );
@@ -48,7 +44,7 @@ const expenses = {
         id: generateId('expense'),
         description: expenseData.description,
         amount: expenseData.amount,
-        paidBy: expenseData.paidBy || 'You', // Use the provided paidBy or default to current user
+        paidBy: expenseData.paidBy || 'You',
         paidById: expenseData.paidByUserId || currentUser.id,
         date: new Date(expenseData.date || new Date()),
         splitWith: expenseData.splitWith || [],
@@ -60,7 +56,6 @@ const expenses = {
         updatedAt: new Date()
       };
       
-      // Add to our in-memory database
       expensesData.unshift(newExpense);
       
       return newExpense;
@@ -81,7 +76,6 @@ const expenses = {
         throw new Error('Expense not found');
       }
       
-      // Update the expense
       const updatedExpense = {
         ...expensesData[expenseIndex],
         description: expenseData.description,
@@ -93,22 +87,18 @@ const expenses = {
         updatedAt: new Date()
       };
       
-      // If paidBy has changed, update it
       if (expenseData.paidBy) {
         updatedExpense.paidBy = expenseData.paidBy;
       }
       
-      // If paidByUserId has changed, update it
       if (expenseData.paidByUserId) {
         updatedExpense.paidById = expenseData.paidByUserId;
       }
       
-      // If splitWith has changed, update it
       if (expenseData.splitWith) {
         updatedExpense.splitWith = expenseData.splitWith;
       }
       
-      // Update in our in-memory database
       expensesData[expenseIndex] = updatedExpense;
       
       return updatedExpense;
@@ -129,7 +119,6 @@ const expenses = {
         throw new Error('Expense not found');
       }
       
-      // Remove from our in-memory database
       expensesData.splice(expenseIndex, 1);
       
       return { success: true };
@@ -144,7 +133,6 @@ const expenses = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Return all expenses for this group
       return expensesData.filter(expense => expense.groupId === groupId);
     } catch (error) {
       console.error('Error fetching group expenses:', error);
@@ -159,21 +147,17 @@ const expenses = {
       
       const userId = currentUser.id;
       
-      // Get all expenses where the current user is involved
       const userExpenses = expensesData.filter(expense => 
         expense.paidById === userId || expense.splitWith.includes('You')
       );
       
-      // Calculate statistics
       const total = userExpenses.reduce((sum, exp) => sum + exp.amount, 0);
       
-      // Group by category
       const byCategory = userExpenses.reduce((acc, exp) => {
         acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
         return acc;
       }, {});
       
-      // Group by month
       const byMonth = userExpenses.reduce((acc, exp) => {
         const date = new Date(exp.date);
         const month = date.getMonth();
@@ -196,7 +180,6 @@ const expenses = {
         throw new Error('Expense not found');
       }
       
-      // Update the settled status
       expensesData[expenseIndex].isSettled = settled;
       
       return expensesData[expenseIndex];

@@ -1,8 +1,6 @@
-// activities.js - using mock data
 import { mockActivities, generateId } from './mockData';
 import { auth } from './auth';
 
-// In-memory storage to simulate a database
 let activitiesData = [...mockActivities];
 
 const activities = {
@@ -11,7 +9,6 @@ const activities = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Return recent activities
       return activitiesData.sort((a, b) => 
         new Date(b.createdAt) - new Date(a.createdAt)
       );
@@ -39,7 +36,6 @@ const activities = {
         }
       };
       
-      // Add to our in-memory database
       activitiesData.unshift(newActivity);
       
       return newActivity;

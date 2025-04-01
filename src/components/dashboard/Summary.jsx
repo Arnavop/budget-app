@@ -26,21 +26,17 @@ const Summary = () => {
       try {
         setLoading(true);
         
-        // Get expenses from localStorage
         const storedExpenses = localStorage.getItem(STORAGE_KEY);
         const expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
         
-        console.log("Loaded expenses:", expenses); // Debug
+        console.log("Loaded expenses:", expenses);
         
-        // Calculate total expenses
         let total = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
         let userOwes = 0;
         let userIsOwed = 0;
         
-        // Calculate user balances based on stored expenses
         const userBalances = {};
         
-        // Initialize balance objects for each user
         if (usersList) {
           usersList.forEach(user => {
             if (user.name !== 'You') {
@@ -53,78 +49,59 @@ const Summary = () => {
           });
         }
         
-        // Process expenses to calculate balances
         expenses.forEach(expense => {
-          if (!expense.amount) return; // Skip if no amount
+          if (!expense.amount) return;
           
           const amount = parseFloat(expense.amount);
           
-          // Get split count and amount per person
-          let splitCount = (expense.splitWith?.length || 0) + 1; // +1 for the payer
-          if (splitCount < 1) splitCount = 1; // Ensure at least 1 for division
+          let splitCount = (expense.splitWith?.length || 0) + 1;
+          if (splitCount < 1) splitCount = 1;
           
           const splitAmount = amount / splitCount;
           
           if (expense.paidBy === 'You') {
-            // Current user paid, others owe them
             expense.splitWith?.forEach(userName => {
-              // Find user ID
               const user = usersList?.find(u => u.name === userName);
               if (user && userBalances[user.id]) {
-                // Add to what this user owes the current user
                 userBalances[user.id].balance += splitAmount;
                 userIsOwed += splitAmount;
               }
             });
           } else {
-            // Someone else paid - this is where the issue is happening
             const paidByUser = usersList?.find(u => u.name === expense.paidBy);
             
             if (paidByUser && userBalances[paidByUser.id]) {
-              // If the expense has split information
               if (expense.splitWith) {
-                // Check if current user is in the split
                 if (expense.splitWith.includes('You')) {
-                  // Current user owes the person who paid
-                  const userSplitAmount = splitAmount; // Each person owes this amount
+                  const userSplitAmount = splitAmount;
                   userBalances[paidByUser.id].balance -= userSplitAmount;
                   userOwes += userSplitAmount;
                   
-                  // For debugging
                   console.log(`Added debt to ${paidByUser.name}: ${userSplitAmount}`);
                 }
               } else {
-                // Fallback if splitWith is missing - assume you're part of the split
-                // This handles potential inconsistencies in the expense data
-                const fallbackSplitAmount = amount / 2; // Assume split between payer and you
+                const fallbackSplitAmount = amount / 2;
                 userBalances[paidByUser.id].balance -= fallbackSplitAmount;
                 userOwes += fallbackSplitAmount;
                 
-                // For debugging
                 console.log(`Fallback: Added debt to ${paidByUser.name}: ${fallbackSplitAmount}`);
               }
             }
           }
         });
         
-        console.log("Calculated balances:", userBalances); // Debug
-        console.log("User owes:", userOwes, "User is owed:", userIsOwed); // Debug
+        console.log("Calculated balances:", userBalances);
+        console.log("User owes:", userOwes, "User is owed:", userIsOwed);
         
-        // Set total expenses
         setTotalExpenses(total);
         
-        // Set user's net balance (what they are owed minus what they owe)
         setUserBalance(userIsOwed - userOwes);
         
-        // Set balances for other users
         setBalances(Object.values(userBalances));
         
-        // For settlements, we'll still use the mock data service or
-        // create settlements based on calculated balances
         const userSettlements = await users.getSettlements();
         setSettlements(userSettlements.filter(s => !s.completed));
         
-        // Listen for expense changes to update balances
         const handleExpenseChange = () => {
           fetchData();
         };
@@ -134,10 +111,9 @@ const Summary = () => {
         window.addEventListener('expenseUpdated', handleExpenseChange);
 
         const dispatchExpenseAddedEvent = (expense) => {
-          // Create and dispatch custom event with expense data
           const event = new CustomEvent('expenseAdded', { 
             detail: expense,
-            bubbles: true,  // Make sure event bubbles
+            bubbles: true,
             cancelable: true
           });
           window.dispatchEvent(event);
@@ -158,15 +134,12 @@ const Summary = () => {
     fetchData();
   }, [currentUser, usersList]);
 
-  // Helper to check if we have any data
   const hasData = () => {
     return balances.some(balance => balance.balance !== 0) || userBalance !== 0;
   };
 
-  // Rest of the component remains unchanged
   const handleRemind = async (settlement) => {
     try {
-      // Create a notification activity using the activities service
       await activities.create({
         action: 'reminder',
         resourceType: 'settlement',
@@ -186,7 +159,6 @@ const Summary = () => {
   
   const handleRemindAll = async () => {
     try {
-      // For each settlement, create a notification activity
       for (const settlement of settlements) {
         await activities.create({
           action: 'reminder',
@@ -210,23 +182,19 @@ const Summary = () => {
     if (!currentUser) return;
     
     try {
-      // Determine who should pay whom
       let fromUserId, toUserId;
       if (amount > 0) {
-        // Positive balance means the other user owes the current user
         fromUserId = userId;
         toUserId = currentUser.id;
       } else {
-        // Negative balance means the current user owes the other user
         fromUserId = currentUser.id;
         toUserId = userId;
-        amount = Math.abs(amount); // Make amount positive
+        amount = Math.abs(amount);
       }
       
       await users.createSettlement(fromUserId, toUserId, amount);
       alert('Settlement created successfully!');
       
-      // Refresh data
       const userSettlements = await users.getSettlements();
       setSettlements(userSettlements.filter(s => !s.completed));
     } catch (error) {
@@ -234,7 +202,6 @@ const Summary = () => {
     }
   };
 
-  // Styling
   const tabContainerStyles = {
     display: 'flex',
     marginBottom: '20px',
@@ -476,7 +443,6 @@ const Summary = () => {
                         onClick={async () => {
                           try {
                             await users.completeSettlement(settlement.id);
-                            // Refresh settlements
                             const userSettlements = await users.getSettlements();
                             setSettlements(userSettlements.filter(s => !s.completed));
                           } catch (error) {
@@ -495,7 +461,6 @@ const Summary = () => {
         </div>
       )}
       
-      {/* Link to Settlements page */}
       <Link to="/settlements" style={footerLinkStyles}>
         View All Settlements →
       </Link>
