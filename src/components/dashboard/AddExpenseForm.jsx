@@ -8,6 +8,8 @@ import { useAuth } from '../../hooks/useAuth';
 import activities from '../../services/activities';
 
 const STORAGE_KEY = 'budget_app_recent_expenses';
+const ANALYTICS_STATS_KEY = 'analyticsStats';
+const ANALYTICS_TIMESTAMP_KEY = 'analyticsTimestamp';
 
 const AddExpenseForm = ({ onShowFullForm }) => {
   const { addExpense } = useExpenses();
@@ -73,7 +75,10 @@ const AddExpenseForm = ({ onShowFullForm }) => {
       // Save to localStorage
       saveToLocalStorage(newExpense);
       
-      // Dispatch custom event to notify ExpenseList
+      // Update analytics data with the new expense
+      updateAnalyticsData(newExpense);
+      
+      // Dispatch custom event to notify ExpenseList and Analytics component
       dispatchExpenseAddedEvent(newExpense);
       
       // Reset the form after successful submission
@@ -101,6 +106,73 @@ const AddExpenseForm = ({ onShowFullForm }) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
     } catch (error) {
       console.error('Error saving to localStorage:', error);
+    }
+  };
+
+  const updateAnalyticsData = (newExpense) => {
+    try {
+      // Get existing analytics data from localStorage
+      const storedStats = localStorage.getItem(ANALYTICS_STATS_KEY);
+      
+      if (!storedStats) {
+        // If no analytics data exists yet, we'll let the Analytics component handle it
+        return;
+      }
+      
+      const stats = JSON.parse(storedStats);
+      
+      // 1. Update daily spending data
+      const expenseDate = new Date(newExpense.date).toISOString().split('T')[0];
+      const dailySpendingEntry = stats.dailySpending.find(entry => entry.date === expenseDate);
+      
+      if (dailySpendingEntry) {
+        dailySpendingEntry.amount += parseFloat(newExpense.amount);
+      }
+      
+      // 2. Update category data
+      const categoryEntry = stats.categories.find(cat => cat.name === newExpense.category);
+      
+      if (categoryEntry) {
+        // Update existing category
+        categoryEntry.amount += parseFloat(newExpense.amount);
+      } else {
+        // Add new category with default color
+        const categoryColors = {
+          'Food': '#4CAF50',
+          'Transport': '#2196F3',
+          'Entertainment': '#FF9800',
+          'Utilities': '#9C27B0',
+          'Other': '#607D8B'
+        };
+        
+        stats.categories.push({
+          name: newExpense.category,
+          amount: parseFloat(newExpense.amount),
+          percentage: 0, // Will be recalculated below
+          color: categoryColors[newExpense.category] || '#607D8B'
+        });
+      }
+      
+      // 3. Update summary statistics
+      stats.summary.totalSpent += parseFloat(newExpense.amount);
+      stats.summary.avgPerDay = stats.summary.totalSpent / 30;
+      
+      if (dailySpendingEntry && dailySpendingEntry.amount > stats.summary.maxDay) {
+        stats.summary.maxDay = dailySpendingEntry.amount;
+      }
+      
+      // 4. Recalculate category percentages
+      stats.categories.forEach(category => {
+        category.percentage = Math.round((category.amount / stats.summary.totalSpent) * 100) || 0;
+      });
+      
+      // 5. Save updated analytics data back to localStorage
+      localStorage.setItem(ANALYTICS_STATS_KEY, JSON.stringify(stats));
+      localStorage.setItem(ANALYTICS_TIMESTAMP_KEY, new Date().getTime().toString());
+    } catch (error) {
+      console.error('Error updating analytics data:', error);
+      // If there's an error updating analytics data, 
+      // we'll just let the Analytics component refresh it completely
     }
   };
   

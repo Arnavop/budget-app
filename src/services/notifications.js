@@ -1,38 +1,7 @@
 import { generateId } from './mockData';
 import { auth } from './auth';
 
-let notificationsData = [
-  {
-    id: 'notification-1',
-    userId: 'user-1',
-    type: 'reminder',
-    title: 'Payment Reminder',
-    message: 'You have an outstanding payment of $43.20 to You',
-    read: false,
-    actionLink: '/settlements',
-    createdAt: '2023-04-03T12:30:00Z'
-  },
-  {
-    id: 'notification-2',
-    userId: 'user-1',
-    type: 'expense',
-    title: 'New Expense Added',
-    message: 'Sam added an expense "Lunch" for $42.75',
-    read: true,
-    actionLink: '/expenses/expense-5',
-    createdAt: '2023-03-28T13:20:00Z'
-  },
-  {
-    id: 'notification-3',
-    userId: 'user-1',
-    type: 'group',
-    title: 'Added to Group',
-    message: 'Alex added you to "Trip to Vegas" group',
-    read: false,
-    actionLink: '/dashboard/groups/group-2',
-    createdAt: '2023-03-20T14:35:00Z'
-  }
-];
+let notificationsData = [];
 
 const notifications = {
   getAll: async () => {

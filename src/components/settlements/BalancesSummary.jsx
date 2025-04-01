@@ -1,7 +1,113 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../common/Card';
+import { useAuth } from '../../hooks/useAuth';
 
-const BalancesSummary = ({ balances }) => {
+// Storage keys
+const STORAGE_KEY = 'budget_app_balances';
+const EXPENSES_STORAGE_KEY = 'budget_app_recent_expenses';
+
+const BalancesSummary = ({ balances: propBalances = [] }) => {
+  // State to store balances from localStorage or props
+  const [balances, setBalances] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
+  
+  // Calculate balances from expenses in localStorage
+  useEffect(() => {
+    const calculateBalancesFromExpenses = () => {
+      try {
+        // Check if we have valid balances from props
+        if (propBalances && propBalances.length > 0) {
+          console.log("Using prop balances:", propBalances);
+          setBalances(propBalances);
+          setLoading(false);
+          return;
+        }
+        
+        // Get expenses from localStorage
+        const storedExpenses = localStorage.getItem(EXPENSES_STORAGE_KEY);
+        if (!storedExpenses) {
+          setBalances([]);
+          setLoading(false);
+          return;
+        }
+        
+        const expenses = JSON.parse(storedExpenses);
+        console.log("Calculating balances from expenses:", expenses);
+        
+        // Calculate balances based on expenses
+        const userBalances = {};
+        
+        expenses.forEach(expense => {
+          if (!expense.amount) return;
+          
+          const amount = parseFloat(expense.amount);
+          const paidBy = expense.paidBy;
+          const splitWith = expense.splitWith || [];
+          
+          // Calculate split amount
+          let splitCount = splitWith.length + 1; // +1 for the person who paid
+          if (splitCount < 1) splitCount = 1;
+          
+          const splitAmount = amount / splitCount;
+          
+          // User is the one who paid
+          if (paidBy === 'You') {
+            // Add positive balance (others owe you)
+            splitWith.forEach(user => {
+              if (!userBalances[user]) {
+                userBalances[user] = { name: user, balance: 0 };
+              }
+              userBalances[user].balance += splitAmount;
+            });
+          }
+          // Someone else paid
+          else {
+            // Add negative balance (you owe them)
+            if (splitWith.includes('You')) {
+              if (!userBalances[paidBy]) {
+                userBalances[paidBy] = { name: paidBy, balance: 0 };
+              }
+              userBalances[paidBy].balance -= splitAmount;
+            }
+          }
+        });
+        
+        // Convert to array
+        const balancesArray = Object.values(userBalances);
+        console.log("Calculated balances:", balancesArray);
+        
+        setBalances(balancesArray);
+        // Save calculated balances to localStorage
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(balancesArray));
+      } catch (error) {
+        console.error('Error calculating balances:', error);
+        setBalances([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    calculateBalancesFromExpenses();
+    
+    // Listen for expense changes to update balances
+    const handleExpenseChange = () => {
+      calculateBalancesFromExpenses();
+    };
+    
+    window.addEventListener('expenseAdded', handleExpenseChange);
+    window.addEventListener('expenseDeleted', handleExpenseChange);
+    window.addEventListener('expenseUpdated', handleExpenseChange);
+    window.addEventListener('balancesUpdated', handleExpenseChange);
+    
+    return () => {
+      window.removeEventListener('expenseAdded', handleExpenseChange);
+      window.removeEventListener('expenseDeleted', handleExpenseChange);
+      window.removeEventListener('expenseUpdated', handleExpenseChange);
+      window.removeEventListener('balancesUpdated', handleExpenseChange);
+    };
+  }, [propBalances, currentUser]);
+
   // Calculate total balance
   const totalOwed = balances
     .filter(balance => balance.balance < 0)
@@ -96,6 +202,18 @@ const BalancesSummary = ({ balances }) => {
     marginLeft: '8px',
   };
 
+  // Show a loading state
+  if (loading) {
+    return (
+      <Card style={cardStyles}>
+        <div style={headerStyles}>Balance Summary</div>
+        <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+          Loading balances...
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card style={cardStyles}>
       <div style={headerStyles}>Balance Summary</div>
@@ -120,7 +238,7 @@ const BalancesSummary = ({ balances }) => {
         {balances.map(balance => (
           balance.name !== 'You' && (
             <div 
-              key={balance.name} 
+              key={balance.name || balance.userId} 
               style={getBalanceItemStyles(balance.balance)}
             >
               <div style={balanceRowStyles}>

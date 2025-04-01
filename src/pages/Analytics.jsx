@@ -7,7 +7,15 @@ const Analytics = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [selectedView, setSelectedView] = useState('week'); // week, month, year
+  const [selectedView, setSelectedView] = useState(() => {
+    // Get the stored view preference or default to 'week'
+    return localStorage.getItem('analyticsView') || 'week';
+  });
+
+  useEffect(() => {
+    // Save view preference to localStorage whenever it changes
+    localStorage.setItem('analyticsView', selectedView);
+  }, [selectedView]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -16,8 +24,33 @@ const Analytics = () => {
       try {
         setLoading(true);
         
-        // Initialize with empty data
-        const expenseData = [];
+        // Check if we have cached data in localStorage and it's not expired
+        const cachedData = localStorage.getItem('analyticsStats');
+        const cachedTimestamp = localStorage.getItem('analyticsTimestamp');
+        const now = new Date().getTime();
+        
+        // Use cached data if it exists and is less than 15 minutes old
+        if (cachedData && cachedTimestamp && (now - parseInt(cachedTimestamp) < 15 * 60 * 1000)) {
+          setStats(JSON.parse(cachedData));
+          setLoading(false);
+          
+          // Still fetch fresh data in the background
+          refreshData();
+          return;
+        }
+        
+        // Otherwise fetch fresh data
+        await refreshData();
+      } catch (error) {
+        console.error('Error fetching analytics data:', error);
+        setLoading(false);
+      }
+    };
+    
+    const refreshData = async () => {
+      try {
+        // Fetch actual expense data from the service
+        const expenseData = await expenses.getAll();
         
         // Calculate category distribution
         const categoryMap = {};
@@ -88,7 +121,7 @@ const Analytics = () => {
         const maxDay = Math.max(...spendingValues);
         const minDay = Math.min(...spendingValues);
         
-        setStats({
+        const newStats = {
           categories,
           dailySpending: dailySpendingArray,
           summary: {
@@ -97,30 +130,36 @@ const Analytics = () => {
             maxDay,
             minDay
           }
-        });
-        
-        // Listen for expense changes to update analytics
-        const handleExpenseChange = () => {
-          fetchStats();
         };
         
-        window.addEventListener('expenseAdded', handleExpenseChange);
-        window.addEventListener('expenseDeleted', handleExpenseChange);
-        window.addEventListener('expenseUpdated', handleExpenseChange);
+        // Store the data in localStorage for persistence
+        localStorage.setItem('analyticsStats', JSON.stringify(newStats));
+        localStorage.setItem('analyticsTimestamp', new Date().getTime().toString());
         
-        return () => {
-          window.removeEventListener('expenseAdded', handleExpenseChange);
-          window.removeEventListener('expenseDeleted', handleExpenseChange);
-          window.removeEventListener('expenseUpdated', handleExpenseChange);
-        };
+        setStats(newStats);
+        setLoading(false);
       } catch (error) {
-        console.error('Error fetching analytics data:', error);
-      } finally {
+        console.error('Error refreshing analytics data:', error);
         setLoading(false);
       }
     };
     
     fetchStats();
+    
+    // Set up event listeners for expense changes
+    const handleExpenseChange = () => {
+      refreshData();
+    };
+    
+    window.addEventListener('expenseAdded', handleExpenseChange);
+    window.addEventListener('expenseDeleted', handleExpenseChange);
+    window.addEventListener('expenseUpdated', handleExpenseChange);
+    
+    return () => {
+      window.removeEventListener('expenseAdded', handleExpenseChange);
+      window.removeEventListener('expenseDeleted', handleExpenseChange);
+      window.removeEventListener('expenseUpdated', handleExpenseChange);
+    };
   }, [currentUser]);
 
   if (loading) {
