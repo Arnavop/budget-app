@@ -16,7 +16,6 @@ const GroupsList = () => {
     try {
       setLoading(true);
       
-      // Use our groups service which now uses localStorage
       const data = await groups.getAll();
       setUserGroups(data);
     } catch (error) {
@@ -30,13 +29,10 @@ const GroupsList = () => {
     loadGroups();
   }, [currentUser]);
   
-  // Listen for custom events for real-time updates
   useEffect(() => {
-    // Handler for new group added
     const handleGroupAdded = (event) => {
       const newGroup = event.detail;
       setUserGroups(prev => {
-        // Only add if not already in the list
         if (!prev.some(group => group.id === newGroup.id)) {
           return [...prev, newGroup];
         }
@@ -44,7 +40,6 @@ const GroupsList = () => {
       });
     };
     
-    // Handler for group updated
     const handleGroupUpdated = (event) => {
       const updatedGroup = event.detail;
       setUserGroups(prev => 
@@ -52,13 +47,11 @@ const GroupsList = () => {
       );
     };
     
-    // Handler for group deleted
     const handleGroupDeleted = (event) => {
       const { id } = event.detail;
       setUserGroups(prev => prev.filter(group => group.id !== id));
     };
     
-    // Handler for member added to group
     const handleMemberAdded = (event) => {
       const { group } = event.detail;
       setUserGroups(prev => 
@@ -66,7 +59,6 @@ const GroupsList = () => {
       );
     };
     
-    // Handler for member removed from group
     const handleMemberRemoved = (event) => {
       const { group } = event.detail;
       setUserGroups(prev => 
@@ -74,14 +66,12 @@ const GroupsList = () => {
       );
     };
     
-    // Add event listeners
     window.addEventListener('groupAdded', handleGroupAdded);
     window.addEventListener('groupUpdated', handleGroupUpdated);
     window.addEventListener('groupDeleted', handleGroupDeleted);
     window.addEventListener('groupMemberAdded', handleMemberAdded);
     window.addEventListener('groupMemberRemoved', handleMemberRemoved);
     
-    // Cleanup
     return () => {
       window.removeEventListener('groupAdded', handleGroupAdded);
       window.removeEventListener('groupUpdated', handleGroupUpdated);

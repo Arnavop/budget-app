@@ -19,8 +19,6 @@ const Settings = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSaveSettings = () => {
-    // In a real app, we would save these settings to the database
-    // For now, we'll just show a success message
     alert('Settings saved successfully!');
   };
   

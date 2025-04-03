@@ -9,8 +9,6 @@ export const mockUsers = [
     createdAt: '2023-01-15T10:00:00Z',
     updatedAt: '2023-03-20T14:30:00Z'
   }
-  // Removed hardcoded users (Alex, Sam, Jordan)
-  // Users can now be added through the ManageMembers component
 ];
 
 export const mockExpenses = [
@@ -21,7 +19,7 @@ export const mockExpenses = [
     paidBy: 'You',
     paidById: 'user-1',
     date: '2023-04-10T19:30:00Z',
-    splitWith: [], // Empty until custom members are added
+    splitWith: [],
     splitMethod: 'equal',
     category: 'Food',
     notes: 'Great dinner with friends',
@@ -36,7 +34,7 @@ export const mockExpenses = [
     paidBy: 'You',
     paidById: 'user-1',
     date: '2023-04-05T11:20:00Z',
-    splitWith: [], // Empty until custom members are added
+    splitWith: [],
     splitMethod: 'equal',
     category: 'Food',
     notes: 'Weekly groceries',
@@ -44,7 +42,6 @@ export const mockExpenses = [
     groupId: null,
     updatedAt: '2023-04-05T11:20:00Z'
   }
-  // Removed expenses involving the removed mock users
 ];
 
 export const mockGroups = [
@@ -54,7 +51,7 @@ export const mockGroups = [
     icon: '🏠',
     createdBy: 'user-1',
     updatedAt: '2023-03-15T10:00:00Z',
-    members: ['You'], // Only you until custom members are added
+    members: ['You'], 
     expenses: []
   },
   {
@@ -63,7 +60,7 @@ export const mockGroups = [
     icon: '🎮',
     createdBy: 'user-1',
     updatedAt: '2023-04-01T20:00:00Z',
-    members: ['You'], // Only you until custom members are added
+    members: ['You'],
     expenses: []
   }
 ];
@@ -117,7 +114,6 @@ export const mockActivities = [
       name: 'You'
     }
   }
-  // Removed activities involving removed mock users
 ];
 
 export const generateId = (prefix) => {

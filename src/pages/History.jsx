@@ -10,7 +10,6 @@ const History = () => {
   const [sortDirection, setSortDirection] = useState('desc');
   const [filteredExpenses, setFilteredExpenses] = useState([]);
 
-  // Apply filters and sorting
   useEffect(() => {
     if (!expenses || expenses.length === 0) {
       setFilteredExpenses([]);
@@ -19,14 +18,12 @@ const History = () => {
     
     let filtered = [...expenses];
     
-    // Apply filter
     if (filter === 'settled') {
       filtered = filtered.filter(exp => exp.isSettled);
     } else if (filter === 'unsettled') {
       filtered = filtered.filter(exp => !exp.isSettled);
     }
     
-    // Apply sorting
     filtered.sort((a, b) => {
       if (sortBy === 'date') {
         return sortDirection === 'desc'
@@ -37,7 +34,6 @@ const History = () => {
           ? b.amount - a.amount
           : a.amount - b.amount;
       } else {
-        // Description sort
         const descA = (a.description || '').toLowerCase();
         const descB = (b.description || '').toLowerCase();
         return sortDirection === 'desc'

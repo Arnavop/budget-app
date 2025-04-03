@@ -27,14 +27,12 @@ const Groups = () => {
     }
     
     try {
-      // Create group using the service
       const newGroup = await addGroup({
         name: newGroupName.trim(),
         icon: newGroupIcon,
         members: selectedMembers
       });
       
-      // Create activity
       await activities.create({
         action: 'created',
         resourceType: 'group',
@@ -44,13 +42,11 @@ const Groups = () => {
         }
       });
       
-      // Reset form
       setNewGroupName('');
       setNewGroupIcon('👥');
       setSelectedMembers([]);
       setIsCreatingGroup(false);
       
-      // Navigate to the new group
       navigate(`/dashboard/groups/${newGroup.id}`);
     } catch (error) {
       console.error('Error creating group:', error);

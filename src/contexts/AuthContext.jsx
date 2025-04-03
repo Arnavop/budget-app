@@ -4,17 +4,15 @@ import { auth } from '../services/auth';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(auth.currentUser); // Initialize with localStorage value
-  const [loading, setLoading] = useState(!auth.currentUser); // Only show loading if no user in localStorage
+  const [currentUser, setCurrentUser] = useState(auth.currentUser)
+  const [loading, setLoading] = useState(!auth.currentUser); 
 
   useEffect(() => {
-    // Set up the auth state listener
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
       setLoading(false);
     });
 
-    // Cleanup the listener
     return unsubscribe;
   }, []);
 

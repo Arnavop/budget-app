@@ -3,7 +3,6 @@ import Card from '../common/Card';
 import Button from '../common/Button';
 
 const SettlementsList = ({ settlements, onCompleteSettlement, isActive = true }) => {
-  // Format date in a readable way
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -25,7 +24,6 @@ const SettlementsList = ({ settlements, onCompleteSettlement, isActive = true })
     color: 'var(--text-secondary)',
   };
   
-  // If there are no settlements
   if (!settlements || settlements.length === 0) {
     return (
       <Card>

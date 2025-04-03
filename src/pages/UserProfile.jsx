@@ -5,47 +5,40 @@ import Input from '../components/common/Input';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
-import { auth } from '../services/auth'; // Import auth service directly
+import { auth } from '../services/auth';
 
 const UserProfile = () => {
   const { currentUser, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   
-  // Initialize state with currentUser data when available
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [color, setColor] = useState(currentUser?.color || 'blue');
   
-  // Initialize profileData with currentUser so we have data even before fetching
   const [profileData, setProfileData] = useState(currentUser || null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // If we already have currentUser, use it immediately
     if (currentUser?.id) {
       setProfileData(currentUser);
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
       setColor(currentUser.color || 'blue');
-      setLoading(false); // Stop loading immediately since we have data
+      setLoading(false);
     }
     
     const fetchProfileData = async () => {
-      console.log('Fetching profile data, currentUser:', currentUser);
       
       try {
-        // Check for session if currentUser is not available
         if (!currentUser?.id) {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
-            console.log('No session found, redirecting to login');
             navigate('/login');
             return;
           }
           
           const userId = session.user.id;
-          console.log('Using session user ID:', userId);
           
           const { data, error } = await supabase
             .from('profiles')
@@ -54,18 +47,14 @@ const UserProfile = () => {
             .single();
             
           if (error) {
-            console.error('Error fetching profile from session:', error);
             throw error;
           }
           
-          console.log('Profile data from session:', data);
           setProfileData(data);
           setName(data.name || '');
           setEmail(data.email || '');
           setColor(data.color || 'blue');
         } else {
-          // Use currentUser.id as before
-          console.log('Using currentUser ID:', currentUser.id);
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
@@ -73,24 +62,19 @@ const UserProfile = () => {
             .single();
             
           if (error) {
-            console.error('Error fetching profile from currentUser:', error);
             throw error;
           }
           
-          console.log('Profile data from currentUser:', data);
           setProfileData(data);
           setName(data.name || '');
           setEmail(data.email || '');
           setColor(data.color || 'blue');
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
-        // Don't stop loading if we have currentUser data
         if (!currentUser) {
           setLoading(false);
         }
       } finally {
-        console.log('Setting loading to false');
         setLoading(false);
       }
     };
@@ -98,7 +82,6 @@ const UserProfile = () => {
     fetchProfileData();
   }, [currentUser, navigate]);
   
-  // Rest of the component remains the same
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -108,7 +91,6 @@ const UserProfile = () => {
         color
       });
       
-      // Refresh profile data after update
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -124,7 +106,6 @@ const UserProfile = () => {
     }
   };
   
-  // Debug loading state
   console.log('Current loading state:', loading, 'profileData:', profileData);
   
   if (loading && !profileData) {
@@ -140,7 +121,6 @@ const UserProfile = () => {
     );
   }
   
-  // If we're not loading but don't have profileData, something went wrong
   if (!profileData) {
     return (
       <div>
@@ -166,7 +146,6 @@ const UserProfile = () => {
     return date.toLocaleString();
   };
   
-  // ...existing code...
   return (
     <div>
       <h1 style={{ marginBottom: '20px' }}>Your Profile</h1>
@@ -187,7 +166,7 @@ const UserProfile = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={true} // Email can't be changed directly
+              disabled={true}
               required
             />
             

@@ -8,11 +8,9 @@ const Header = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Determine active page based on current path
   const getActivePage = () => {
     const path = location.pathname;
     
-    // Check for groups first to ensure it has priority
     if (path.includes('/groups') || path === '/dashboard/groups' || path.includes('/group/')) {
       return 'groups';
     }
@@ -46,6 +44,7 @@ const Header = () => {
     fontSize: '24px',
     fontWeight: 'bold',
     color: 'var(--accent-light)',
+    cursor: 'pointer',
   };
 
   const logoIconStyles = {
@@ -120,7 +119,6 @@ const Header = () => {
   };
 
   const handleNavClick = (page) => {
-    // Use the correct paths for each page
     switch(page) {
       case 'dashboard':
         navigate('/dashboard');
@@ -160,7 +158,7 @@ const Header = () => {
 
   return (
     <header style={headerStyles}>
-      <div style={logoStyles}>
+      <div style={logoStyles} onClick={() => navigate('/dashboard')}>
         <span style={logoIconStyles}>💸</span>
         <span>Split.io</span>
       </div>

@@ -1,4 +1,3 @@
-// Sample mock data for groups
 export const mockGroups = [
   {
     id: 'group-1',

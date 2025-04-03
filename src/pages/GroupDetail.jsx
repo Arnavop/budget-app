@@ -25,7 +25,6 @@ const GroupDetail = () => {
   const [newMemberName, setNewMemberName] = useState('');
   const [availableMembers, setAvailableMembers] = useState([]);
   
-  // Array of available icons to choose from
   const [availableIcons] = useState(['👥', '🏠', '🍔', '🍕', '🎮', '🏄', '👨‍👩‍👧‍👦', '💼', '🏝️', '🚗', '💰', '🎓']);
 
   useEffect(() => {
@@ -43,7 +42,6 @@ const GroupDetail = () => {
         setEditedName(groupData.name);
         setEditedIcon(groupData.icon || '👥');
         
-        // Calculate available members to add (those not already in the group)
         if (users) {
           const notInGroup = users
             .filter(user => user.name !== 'You' && !groupData.members.includes(user.name))
@@ -60,7 +58,6 @@ const GroupDetail = () => {
     
     loadGroup();
     
-    // Listen for group update events
     const handleGroupUpdate = (event) => {
       const updatedGroup = event.detail;
       if (updatedGroup.id === id) {
@@ -68,7 +65,6 @@ const GroupDetail = () => {
         setEditedName(updatedGroup.name);
         setEditedIcon(updatedGroup.icon || '👥');
         
-        // Update available members
         if (users) {
           const notInGroup = users
             .filter(user => user.name !== 'You' && !updatedGroup.members.includes(user.name))
@@ -101,7 +97,6 @@ const GroupDetail = () => {
         icon: editedIcon
       });
       
-      // Create activity
       await activities.create({
         action: 'updated',
         resourceType: 'group',
@@ -132,7 +127,6 @@ const GroupDetail = () => {
       try {
         await deleteGroup(id);
         
-        // Create activity
         await activities.create({
           action: 'deleted',
           resourceType: 'group',
@@ -159,7 +153,6 @@ const GroupDetail = () => {
     try {
       await addMember(id, newMemberName);
       
-      // Create activity for adding member
       await activities.create({
         action: 'added_member',
         resourceType: 'group',
@@ -189,7 +182,6 @@ const GroupDetail = () => {
       try {
         await removeMember(id, memberName);
         
-        // Create activity for removing member
         await activities.create({
           action: 'removed_member',
           resourceType: 'group',

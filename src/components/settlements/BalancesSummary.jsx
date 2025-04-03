@@ -2,21 +2,17 @@ import React, { useState, useEffect } from 'react';
 import Card from '../common/Card';
 import { useAuth } from '../../hooks/useAuth';
 
-// Storage keys
 const STORAGE_KEY = 'budget_app_balances';
 const EXPENSES_STORAGE_KEY = 'budget_app_recent_expenses';
 
-const BalancesSummary = ({ balances: propBalances = [] }) => {
-  // State to store balances from localStorage or props
+const BalancesSummary = ({ balances: propBalances = [], onCreateSettlement, renderActions }) => {
   const [balances, setBalances] = useState([]);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
   
-  // Calculate balances from expenses in localStorage
   useEffect(() => {
     const calculateBalancesFromExpenses = () => {
       try {
-        // Check if we have valid balances from props
         if (propBalances && propBalances.length > 0) {
           console.log("Using prop balances:", propBalances);
           setBalances(propBalances);
@@ -24,7 +20,6 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
           return;
         }
         
-        // Get expenses from localStorage
         const storedExpenses = localStorage.getItem(EXPENSES_STORAGE_KEY);
         if (!storedExpenses) {
           setBalances([]);
@@ -35,7 +30,6 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
         const expenses = JSON.parse(storedExpenses);
         console.log("Calculating balances from expenses:", expenses);
         
-        // Calculate balances based on expenses
         const userBalances = {};
         
         expenses.forEach(expense => {
@@ -45,15 +39,12 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
           const paidBy = expense.paidBy;
           const splitWith = expense.splitWith || [];
           
-          // Calculate split amount
-          let splitCount = splitWith.length + 1; // +1 for the person who paid
+          let splitCount = splitWith.length + 1;
           if (splitCount < 1) splitCount = 1;
           
           const splitAmount = amount / splitCount;
           
-          // User is the one who paid
           if (paidBy === 'You') {
-            // Add positive balance (others owe you)
             splitWith.forEach(user => {
               if (!userBalances[user]) {
                 userBalances[user] = { name: user, balance: 0 };
@@ -61,9 +52,7 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
               userBalances[user].balance += splitAmount;
             });
           }
-          // Someone else paid
           else {
-            // Add negative balance (you owe them)
             if (splitWith.includes('You')) {
               if (!userBalances[paidBy]) {
                 userBalances[paidBy] = { name: paidBy, balance: 0 };
@@ -73,12 +62,10 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
           }
         });
         
-        // Convert to array
         const balancesArray = Object.values(userBalances);
         console.log("Calculated balances:", balancesArray);
         
         setBalances(balancesArray);
-        // Save calculated balances to localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(balancesArray));
       } catch (error) {
         console.error('Error calculating balances:', error);
@@ -90,7 +77,6 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
     
     calculateBalancesFromExpenses();
     
-    // Listen for expense changes to update balances
     const handleExpenseChange = () => {
       calculateBalancesFromExpenses();
     };
@@ -108,7 +94,6 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
     };
   }, [propBalances, currentUser]);
 
-  // Calculate total balance
   const totalOwed = balances
     .filter(balance => balance.balance < 0)
     .reduce((sum, balance) => sum + Math.abs(balance.balance), 0);
@@ -161,8 +146,8 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
     let textColor = 'inherit';
     
     if (balance === 0) textColor = 'inherit';
-    else if (balance > 0) textColor = '#4caf50'; // green
-    else textColor = '#f44336'; // red
+    else if (balance > 0) textColor = '#4caf50';
+    else textColor = '#f44336'; 
     
     return {
       display: 'flex',
@@ -202,7 +187,21 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
     marginLeft: '8px',
   };
 
-  // Show a loading state
+  const balanceItemStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    backgroundColor: 'var(--bg-secondary)',
+    marginBottom: '12px',
+  };
+
+  const actionsStyles = {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: '8px',
+  };
+
   if (loading) {
     return (
       <Card style={cardStyles}>
@@ -239,7 +238,11 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
           balance.name !== 'You' && (
             <div 
               key={balance.name || balance.userId} 
-              style={getBalanceItemStyles(balance.balance)}
+              style={{
+                ...balanceItemStyle,
+                color: balance.balance === 0 ? 'inherit' : 
+                       balance.balance > 0 ? '#4caf50' : '#f44336'
+              }}
             >
               <div style={balanceRowStyles}>
                 <div style={balanceNameStyles}>{balance.name}</div>
@@ -271,6 +274,12 @@ const BalancesSummary = ({ balances: propBalances = [] }) => {
                       <span>${Math.abs(balance.balance).toFixed(2)}</span>
                     </>
                   )}
+                </div>
+              )}
+              
+              {renderActions && balance.balance !== 0 && (
+                <div style={actionsStyles}>
+                  {renderActions(balance)}
                 </div>
               )}
             </div>

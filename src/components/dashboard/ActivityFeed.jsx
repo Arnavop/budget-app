@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../common/Card';
 import { useAuth } from '../../hooks/useAuth';
-import activities from '../../services/activities';
 
 const STORAGE_KEY = 'budget_app_recent_expenses';
 const ACTIVITY_STORAGE_KEY = 'budget_app_activities';
@@ -20,33 +19,28 @@ const ActivityFeed = () => {
       const storedActivities = localStorage.getItem(ACTIVITY_STORAGE_KEY);
       let activitiesData = storedActivities ? JSON.parse(storedActivities) : [];
       
-      if (activitiesData.length === 0) {
-        const serviceActivities = await activities.getAll();
-        activitiesData = serviceActivities;
+      const storedExpenses = localStorage.getItem(STORAGE_KEY);
+      if (storedExpenses) {
+        const expenses = JSON.parse(storedExpenses);
         
-        const storedExpenses = localStorage.getItem(STORAGE_KEY);
-        if (storedExpenses) {
-          const expenses = JSON.parse(storedExpenses);
-          
-          const expenseActivities = expenses.map(expense => ({
-            id: `expense-${expense.id}`,
-            action: 'created',
-            resourceType: 'expense',
-            resourceId: expense.id,
-            userId: expense.paidByUserId || currentUser.id,
-            user: { name: expense.paidBy },
-            metadata: {
-              description: expense.description,
-              amount: expense.amount
-            },
-            createdAt: expense.date
-          }));
-          
-          activitiesData = [...expenseActivities, ...activitiesData];
-        }
+        const expenseActivities = expenses.map(expense => ({
+          id: `expense-${expense.id}`,
+          action: 'created',
+          resourceType: 'expense',
+          resourceId: expense.id,
+          userId: expense.paidByUserId || currentUser.id,
+          user: { name: expense.paidBy },
+          metadata: {
+            description: expense.description,
+            amount: expense.amount
+          },
+          createdAt: expense.date
+        }));
         
-        localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(activitiesData));
+        activitiesData = [...expenseActivities, ...activitiesData];
       }
+      
+      localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(activitiesData));
       
       const formattedActivities = await Promise.all(activitiesData.map(async (activity) => {
         const isCurrentUser = activity.userId === currentUser.id;

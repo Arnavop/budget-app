@@ -10,35 +10,44 @@ export const ExpenseProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { currentUser } = useAuth();
 
-  // Fetch expenses when user changes
-  useEffect(() => {
+  const fetchExpenses = async () => {
     if (!currentUser) {
       setExpenses([]);
       setIsLoading(false);
       return;
     }
     
-    const fetchExpenses = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const data = await expenseService.getAll();
-        setExpenses(data);
-      } catch (err) {
-        console.error("Error fetching expenses:", err);
-        setError("Failed to load expenses. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const data = await expenseService.getAll();
+      setExpenses(data);
+    } catch (err) {
+      console.error("Error fetching expenses:", err);
+      setError("Failed to load expenses. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [currentUser]);
+  
+  useEffect(() => {
+    const handleExpensesUpdated = () => {
+      fetchExpenses();
+      window.dispatchEvent(new CustomEvent('balancesUpdated'));
     };
     
-    fetchExpenses();
+    window.addEventListener('expensesUpdated', handleExpensesUpdated);
     
-    // No need for real-time subscriptions with mock data
+    return () => {
+      window.removeEventListener('expensesUpdated', handleExpensesUpdated);
+    };
   }, [currentUser]);
 
-  // CRUD operations
   const addExpense = async (expenseData) => {
     try {
       const newExpense = await expenseService.create(expenseData);

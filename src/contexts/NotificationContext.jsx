@@ -24,7 +24,6 @@ export const NotificationProvider = ({ children }) => {
     
     fetchNotifications();
     
-    // No need for real-time subscription as we're using mock data
   }, [currentUser]);
 
   const markAsRead = async (id) => {

@@ -11,7 +11,6 @@ const ManageMembers = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Filter out the current user ("You") for display
   const otherMembers = users ? users.filter(user => user.name !== 'You') : [];
 
   const handleAddMember = async (e) => {
@@ -26,14 +25,11 @@ const ManageMembers = () => {
       setLoading(true);
       setError(null);
       
-      // Call the service to add a new custom member
       await usersService.addCustomMember({ name: newMemberName });
       
-      // Refresh the users list
       const updatedUsers = await usersService.getAll();
       setUsers(updatedUsers);
       
-      // Clear the input
       setNewMemberName('');
     } catch (err) {
       setError(err.message || 'Failed to add member');
@@ -46,10 +42,8 @@ const ManageMembers = () => {
     try {
       setLoading(true);
       
-      // Call the service to delete the member
       await usersService.delete(userId);
       
-      // Refresh the users list
       const updatedUsers = await usersService.getAll();
       setUsers(updatedUsers);
     } catch (err) {

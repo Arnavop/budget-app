@@ -127,10 +127,8 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
     let newExpense;
     
     if (initialExpense?.id) {
-      // Update existing expense
       newExpense = await updateExpense(initialExpense.id, expenseData);
       
-      // Create activity for update
       await activities.create({
         action: 'updated',
         resourceType: 'expense',
@@ -141,16 +139,12 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
         }
       });
       
-      // Update in localStorage
       updateInLocalStorage(initialExpense.id, newExpense);
       
-      // Dispatch custom event to notify ExpenseList about the update
       dispatchExpenseUpdatedEvent(newExpense);
     } else {
-      // Create new expense
       newExpense = await addExpense(expenseData);
       
-      // Create activity record for the new expense
       await activities.create({
         action: 'created',
         resourceType: 'expense',
@@ -161,10 +155,8 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
         }
       });
       
-      // Save to localStorage
       saveToLocalStorage(newExpense);
       
-      // Dispatch custom event to notify ExpenseList
       dispatchExpenseAddedEvent(newExpense);
     }
     
@@ -173,15 +165,12 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
 
   const saveToLocalStorage = (newExpense) => {
     try {
-      // Get existing expenses from localStorage
       const storedExpenses = localStorage.getItem(STORAGE_KEY);
       let expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
       
-      // Add new expense and sort by date (newest first)
       expenses = [newExpense, ...expenses]
         .sort((a, b) => new Date(b.date) - new Date(a.date));
       
-      // Save back to localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
     } catch (error) {
       console.error('Error saving to localStorage:', error);
@@ -190,18 +179,15 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
   
   const updateInLocalStorage = (expenseId, updatedExpense) => {
     try {
-      // Get existing expenses from localStorage
       const storedExpenses = localStorage.getItem(STORAGE_KEY);
       if (!storedExpenses) return;
       
       const expenses = JSON.parse(storedExpenses);
       
-      // Replace the updated expense
       const updatedExpenses = expenses.map(exp => 
         exp.id === expenseId ? updatedExpense : exp
       );
       
-      // Sort and save back to localStorage
       updatedExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedExpenses));
     } catch (error) {
@@ -210,7 +196,6 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
   };
   
   const dispatchExpenseAddedEvent = (expense) => {
-    // Create and dispatch custom event with expense data
     const event = new CustomEvent('expenseAdded', { 
       detail: expense 
     });
@@ -218,7 +203,6 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
   };
   
   const dispatchExpenseUpdatedEvent = (expense) => {
-    // Create and dispatch custom event with updated expense data
     const event = new CustomEvent('expenseUpdated', { 
       detail: expense 
     });
@@ -226,7 +210,6 @@ const ExpenseForm = ({ onSubmit, initialExpense }) => {
   };
 
   const getUserId = (paidByName) => {
-    // Find matching user and return their ID
     const user = users.find(u => u.name === paidByName);
     return user ? user.id : null;
   };

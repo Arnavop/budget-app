@@ -15,12 +15,10 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have the access token from the URL (Supabase adds this automatically)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
     
     if (accessToken) {
-      // Set the access token in Supabase
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: hashParams.get('refresh_token'),
@@ -46,7 +44,6 @@ const ResetPassword = () => {
       setMessage('Password updated successfully! Redirecting to login...');
       setIsError(false);
       
-      // Redirect after a short delay
       setTimeout(() => {
         navigate('/login');
       }, 2000);

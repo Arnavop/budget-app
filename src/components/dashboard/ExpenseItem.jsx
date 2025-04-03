@@ -28,16 +28,13 @@ const ExpenseItem = ({ expense }) => {
 
   const removeFromLocalStorage = (expenseId) => {
     try {
-      // Get existing expenses from localStorage
       const storedExpenses = localStorage.getItem(STORAGE_KEY);
       if (!storedExpenses) return;
       
       const expenses = JSON.parse(storedExpenses);
       
-      // Filter out the deleted expense
       const updatedExpenses = expenses.filter(exp => exp.id !== expenseId);
       
-      // Save back to localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedExpenses));
     } catch (error) {
       console.error('Error updating localStorage:', error);
@@ -45,7 +42,6 @@ const ExpenseItem = ({ expense }) => {
   };
 
   const dispatchExpenseDeletedEvent = (expenseId) => {
-    // Create and dispatch custom event for expense deletion
     const event = new CustomEvent('expenseDeleted', { 
       detail: { id: expenseId }
     });
@@ -150,10 +146,8 @@ const ExpenseItem = ({ expense }) => {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       try {
-        // Delete from the service first
         await deleteExpense(expense.id);
         
-        // Create activity for deletion
         await activities.create({
           action: 'deleted',
           resourceType: 'expense',
@@ -164,10 +158,8 @@ const ExpenseItem = ({ expense }) => {
           }
         });
         
-        // Remove from localStorage
         removeFromLocalStorage(expense.id);
         
-        // Dispatch event to update UI
         dispatchExpenseDeletedEvent(expense.id);
       } catch (error) {
         console.error('Error deleting expense:', error);

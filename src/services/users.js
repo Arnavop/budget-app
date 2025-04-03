@@ -1,21 +1,17 @@
 import { mockUsers, mockSettlements, generateId } from './mockData';
 import { auth } from './auth';
 
-// LocalStorage key for users
 const USERS_STORAGE_KEY = 'budget_app_users';
 const SETTLEMENTS_STORAGE_KEY = 'budget_app_settlements';
 
-// Initialize with localStorage data or fallback to mockUsers
 let usersData = [];
 
-// Load users from localStorage or initialize with mockUsers
 try {
   const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
   if (storedUsers) {
     usersData = JSON.parse(storedUsers);
   } else {
     usersData = [...mockUsers];
-    // Save mock users to localStorage initially
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(usersData));
   }
 } catch (error) {
@@ -23,7 +19,6 @@ try {
   usersData = [...mockUsers];
 }
 
-// Initialize settlements
 let settlementsData = [];
 try {
   const storedSettlements = localStorage.getItem(SETTLEMENTS_STORAGE_KEY);
@@ -38,7 +33,6 @@ try {
   settlementsData = [...mockSettlements];
 }
 
-// Helper function to save users to localStorage
 const saveUsersToStorage = () => {
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(usersData));
@@ -47,7 +41,6 @@ const saveUsersToStorage = () => {
   }
 };
 
-// Helper function to save settlements to localStorage
 const saveSettlementsToStorage = () => {
   try {
     localStorage.setItem(SETTLEMENTS_STORAGE_KEY, JSON.stringify(settlementsData));
@@ -128,7 +121,7 @@ const users = {
       };
       
       usersData.push(newUser);
-      saveUsersToStorage(); // Save to localStorage
+      saveUsersToStorage();
       
       return newUser;
     } catch (error) {
@@ -158,7 +151,7 @@ const users = {
       };
       
       usersData[userIndex] = updatedUser;
-      saveUsersToStorage(); // Save to localStorage
+      saveUsersToStorage();
       
       return {
         ...updatedUser,
@@ -176,21 +169,18 @@ const users = {
       const currentUser = await auth.getCurrentUser();
       if (!currentUser) throw new Error('Not authenticated');
       
-      // Don't allow deleting current user (must go through auth)
       if (id === currentUser.id) {
         throw new Error('Cannot delete current user through this method');
       }
       
-      // Only delete non-current users
       const userIndex = usersData.findIndex(u => u.id === id);
       
       if (userIndex === -1) {
         throw new Error('User not found');
       }
       
-      // Remove the user
       usersData.splice(userIndex, 1);
-      saveUsersToStorage(); // Save to localStorage
+      saveUsersToStorage();
       
       return { success: true };
     } catch (error) {
@@ -201,7 +191,6 @@ const users = {
   
   addCustomMember: async (memberData) => {
     try {
-      // Check if a member with the same name already exists
       if (usersData.some(u => u.name.toLowerCase() === memberData.name.toLowerCase())) {
         throw new Error('A member with this name already exists');
       }
@@ -218,7 +207,7 @@ const users = {
       };
       
       usersData.push(newMember);
-      saveUsersToStorage(); // Save to localStorage
+      saveUsersToStorage(); 
       
       return newMember;
     } catch (error) {
@@ -296,7 +285,7 @@ const users = {
       };
       
       settlementsData.push(newSettlement);
-      saveSettlementsToStorage(); // Save to localStorage
+      saveSettlementsToStorage();
       
       return newSettlement;
     } catch (error) {
@@ -314,7 +303,7 @@ const users = {
       }
       
       settlementsData[settlementIndex].completed = true;
-      saveSettlementsToStorage(); // Save to localStorage
+      saveSettlementsToStorage();
       
       return settlementsData[settlementIndex];
     } catch (error) {

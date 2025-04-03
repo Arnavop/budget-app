@@ -18,7 +18,6 @@ const ExpenseDetail = () => {
       if (foundExpense) {
         setExpense(foundExpense);
       } else {
-        // Expense not found, redirect
         navigate('/not-found');
       }
     }
@@ -68,7 +67,6 @@ const ExpenseDetail = () => {
             initialExpense={expense} 
             onSubmit={() => {
               setIsEditing(false);
-              // Refresh expense data
               const updatedExpense = expenses.find(exp => exp.id === id);
               setExpense(updatedExpense);
             }}

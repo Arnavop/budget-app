@@ -3,7 +3,6 @@ import { auth } from './auth';
 
 const STORAGE_KEY = 'budget_app_expenses';
 
-// Initialize expensesData from localStorage or use empty array if nothing is stored
 let expensesData = [];
 try {
   const storedExpenses = localStorage.getItem(STORAGE_KEY);
@@ -14,10 +13,10 @@ try {
   console.error('Error loading expenses from localStorage:', error);
 }
 
-// Helper function to save expenses to localStorage
 const saveExpensesToStorage = () => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(expensesData));
+    window.dispatchEvent(new CustomEvent('expensesUpdated'));
   } catch (error) {
     console.error('Error saving expenses to localStorage:', error);
   }
@@ -78,7 +77,6 @@ const expenses = {
       
       expensesData.unshift(newExpense);
       
-      // Save to localStorage after creating
       saveExpensesToStorage();
       
       return newExpense;
@@ -124,7 +122,6 @@ const expenses = {
       
       expensesData[expenseIndex] = updatedExpense;
       
-      // Save to localStorage after updating
       saveExpensesToStorage();
       
       return updatedExpense;
@@ -147,7 +144,6 @@ const expenses = {
       
       expensesData.splice(expenseIndex, 1);
       
-      // Save to localStorage after deleting
       saveExpensesToStorage();
       
       return { success: true };
@@ -211,7 +207,6 @@ const expenses = {
       
       expensesData[expenseIndex].isSettled = settled;
       
-      // Save to localStorage after settling expense
       saveExpensesToStorage();
       
       return expensesData[expenseIndex];

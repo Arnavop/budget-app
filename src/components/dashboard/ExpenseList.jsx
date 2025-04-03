@@ -57,7 +57,6 @@ const ExpenseList = () => {
     
     window.addEventListener('expenseAdded', handleNewExpense);
     
-    // Cleanup
     return () => {
       window.removeEventListener('expenseAdded', handleNewExpense);
     };
@@ -89,36 +88,28 @@ const ExpenseList = () => {
       });
     };
     
-    // Add event listener for expense deletion
     window.addEventListener('expenseDeleted', handleDeletedExpense);
     
-    // Cleanup
     return () => {
       window.removeEventListener('expenseDeleted', handleDeletedExpense);
     };
   }, []);
 
-  // Listen for custom event when an expense is updated
   useEffect(() => {
     const handleUpdatedExpense = (event) => {
       const updatedExpense = event.detail;
       
       setRecentExpenses(prevExpenses => {
-        // Check if the updated expense is already in our list
         const expenseIndex = prevExpenses.findIndex(exp => exp.id === updatedExpense.id);
         
-        // If it's in our list, update it
         if (expenseIndex !== -1) {
           const updatedExpenses = [...prevExpenses];
           updatedExpenses[expenseIndex] = updatedExpense;
           
-          // Sort by date again in case the date changed
           updatedExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
           return updatedExpenses;
         }
         
-        // If it's not in our list but is recent enough to be displayed now,
-        // add it and remove the oldest one
         const oldestInList = prevExpenses.length > 0 
           ? prevExpenses.reduce((oldest, current) => 
               new Date(current.date) < new Date(oldest.date) ? current : oldest, 
@@ -129,22 +120,18 @@ const ExpenseList = () => {
         if (oldestInList && 
             prevExpenses.length >= 5 && 
             new Date(updatedExpense.date) > new Date(oldestInList.date)) {
-          // Replace the oldest with the updated expense
           const filteredExpenses = prevExpenses.filter(exp => exp.id !== oldestInList.id);
           const newExpenses = [...filteredExpenses, updatedExpense];
           newExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
           return newExpenses;
         }
         
-        // Otherwise, don't change the list
         return prevExpenses;
       });
     };
     
-    // Add event listener for expense updates
     window.addEventListener('expenseUpdated', handleUpdatedExpense);
     
-    // Cleanup
     return () => {
       window.removeEventListener('expenseUpdated', handleUpdatedExpense);
     };

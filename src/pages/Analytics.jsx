@@ -8,12 +8,10 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [selectedView, setSelectedView] = useState(() => {
-    // Get the stored view preference or default to 'week'
     return localStorage.getItem('analyticsView') || 'week';
   });
 
   useEffect(() => {
-    // Save view preference to localStorage whenever it changes
     localStorage.setItem('analyticsView', selectedView);
   }, [selectedView]);
 
@@ -24,22 +22,18 @@ const Analytics = () => {
       try {
         setLoading(true);
         
-        // Check if we have cached data in localStorage and it's not expired
         const cachedData = localStorage.getItem('analyticsStats');
         const cachedTimestamp = localStorage.getItem('analyticsTimestamp');
         const now = new Date().getTime();
         
-        // Use cached data if it exists and is less than 15 minutes old
         if (cachedData && cachedTimestamp && (now - parseInt(cachedTimestamp) < 15 * 60 * 1000)) {
           setStats(JSON.parse(cachedData));
           setLoading(false);
           
-          // Still fetch fresh data in the background
           refreshData();
           return;
         }
         
-        // Otherwise fetch fresh data
         await refreshData();
       } catch (error) {
         console.error('Error fetching analytics data:', error);
@@ -49,10 +43,8 @@ const Analytics = () => {
     
     const refreshData = async () => {
       try {
-        // Fetch actual expense data from the service
         const expenseData = await expenses.getAll();
         
-        // Calculate category distribution
         const categoryMap = {};
         let totalSpent = 0;
         
@@ -66,7 +58,6 @@ const Analytics = () => {
           categoryMap[category] += amount;
         });
         
-        // Calculate percentages and format category data
         const categoryColors = {
           'Food': '#4CAF50',
           'Transport': '#2196F3',
@@ -83,16 +74,14 @@ const Analytics = () => {
             name: category,
             percentage,
             amount,
-            color: categoryColors[category] || '#607D8B' // Default to gray
+            color: categoryColors[category] || '#607D8B'
           };
         });
         
-        // Generate spending over time data
         const today = new Date();
         const dailySpending = {};
         const last30Days = [];
         
-        // Initialize last 30 days with zero amounts
         for (let i = 29; i >= 0; i--) {
           const date = new Date(today);
           date.setDate(date.getDate() - i);
@@ -101,7 +90,6 @@ const Analytics = () => {
           last30Days.push(dateStr);
         }
         
-        // Add expense amounts to corresponding days
         expenseData.forEach(expense => {
           const expenseDate = new Date(expense.date).toISOString().split('T')[0];
           if (dailySpending[expenseDate] !== undefined) {
@@ -109,13 +97,11 @@ const Analytics = () => {
           }
         });
         
-        // Convert to array format for charting
         const dailySpendingArray = last30Days.map(date => ({
           date,
           amount: dailySpending[date]
         }));
         
-        // Calculate summary statistics
         const avgPerDay = totalSpent / 30;
         const spendingValues = Object.values(dailySpending);
         const maxDay = Math.max(...spendingValues);
@@ -132,7 +118,6 @@ const Analytics = () => {
           }
         };
         
-        // Store the data in localStorage for persistence
         localStorage.setItem('analyticsStats', JSON.stringify(newStats));
         localStorage.setItem('analyticsTimestamp', new Date().getTime().toString());
         
@@ -146,7 +131,6 @@ const Analytics = () => {
     
     fetchStats();
     
-    // Set up event listeners for expense changes
     const handleExpenseChange = () => {
       refreshData();
     };
@@ -175,7 +159,6 @@ const Analytics = () => {
     );
   }
 
-  // Helper function to render a simple bar chart
   const renderBarChart = (data, labelKey, valueKey) => {
     const maxValue = Math.max(...data.map(item => item[valueKey]));
     
@@ -213,14 +196,13 @@ const Analytics = () => {
     );
   };
 
-  // Helper function to render a simple pie chart
   const renderPieChart = (categories) => {
     let cumulativePercentage = 0;
     
     return (
       <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto' }}>
         {categories.map((category, index) => {
-          const startAngle = cumulativePercentage * 3.6; // 3.6 degrees per percent
+          const startAngle = cumulativePercentage * 3.6;
           cumulativePercentage += category.percentage;
           const endAngle = cumulativePercentage * 3.6;
           
@@ -260,17 +242,16 @@ const Analytics = () => {
     );
   };
 
-  // Filtered data for bar chart based on selected view
   const getFilteredSpendingData = () => {
     if (!stats) return [];
     
     const today = new Date();
-    let daysToShow = 7; // Default to week
+    let daysToShow = 7;
     
     if (selectedView === 'month') {
       daysToShow = 30;
     } else if (selectedView === 'year') {
-      daysToShow = 365; // This would be monthly data in a real app
+      daysToShow = 365;
     }
     
     return stats.dailySpending.slice(-daysToShow);

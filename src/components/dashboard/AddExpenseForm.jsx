@@ -9,7 +9,6 @@ import { GroupContext } from '../../contexts/GroupContext';
 import { useContext } from 'react';
 import activities from '../../services/activities';
 
-// Keep these for analytics since they're separate from expense storage
 const ANALYTICS_STATS_KEY = 'analyticsStats';
 const ANALYTICS_TIMESTAMP_KEY = 'analyticsTimestamp';
 
@@ -26,10 +25,8 @@ const AddExpenseForm = ({ onShowFullForm }) => {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Get the selected group object
   const selectedGroup = selectedGroupId ? groups.find(group => group.id === selectedGroupId) : null;
   
-  // Effect to reset paidBy when group changes
   useEffect(() => {
     setPaidBy('You paid');
   }, [selectedGroupId]);
@@ -41,27 +38,22 @@ const AddExpenseForm = ({ onShowFullForm }) => {
     try {
       setLoading(true);
       
-      // Extract the person who paid (remove " paid" suffix)
       const payer = paidBy.replace(' paid', '');
       
-      // Determine split users based on selected group or individual users
       let splitWithUsers;
       
       if (selectedGroup) {
-        // If a group is selected, use group members excluding the payer
         splitWithUsers = selectedGroup.members.filter(member => member !== payer);
       } else if (payer === 'You') {
-        // If you paid and no group selected, split with all other users
         splitWithUsers = users ? 
           users.filter(user => user.name !== 'You').map(user => user.name) : 
-          []; // Empty array if no users loaded
+          [];
       } else {
-        // If someone else paid and no group selected, include yourself in split
         splitWithUsers = users ?
           users.filter(user => user.name !== payer && user.name !== 'You')
             .map(user => user.name)
             .concat(['You']) :
-          ['You']; // Always include yourself in the split
+          ['You'];
       }
       
       const newExpense = await addExpense({
@@ -74,10 +66,9 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         splitMethod: 'equal',
         category,
         notes: '',
-        groupId: selectedGroupId || null, // Associate with group if selected
+        groupId: selectedGroupId || null,
       });
 
-      // Create activity record for the new expense
       await activities.create({
         action: 'created',
         resourceType: 'expense',
@@ -90,13 +81,10 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         }
       });
       
-      // Update analytics data with the new expense
       updateAnalyticsData(newExpense);
       
-      // Dispatch custom event to notify ExpenseList and Analytics component
       dispatchExpenseAddedEvent(newExpense);
       
-      // Reset the form after successful submission
       setDescription('');
       setAmount('');
       setPaidBy('You paid');
@@ -109,17 +97,14 @@ const AddExpenseForm = ({ onShowFullForm }) => {
 
   const updateAnalyticsData = (newExpense) => {
     try {
-      // Get existing analytics data from localStorage
       const storedStats = localStorage.getItem(ANALYTICS_STATS_KEY);
       
       if (!storedStats) {
-        // If no analytics data exists yet, we'll let the Analytics component handle it
         return;
       }
       
       const stats = JSON.parse(storedStats);
       
-      // 1. Update daily spending data
       const expenseDate = new Date(newExpense.date).toISOString().split('T')[0];
       const dailySpendingEntry = stats.dailySpending.find(entry => entry.date === expenseDate);
       
@@ -127,14 +112,11 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         dailySpendingEntry.amount += parseFloat(newExpense.amount);
       }
       
-      // 2. Update category data
       const categoryEntry = stats.categories.find(cat => cat.name === newExpense.category);
       
       if (categoryEntry) {
-        // Update existing category
         categoryEntry.amount += parseFloat(newExpense.amount);
       } else {
-        // Add new category with default color
         const categoryColors = {
           'Food': '#4CAF50',
           'Transport': '#2196F3',
@@ -146,12 +128,11 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         stats.categories.push({
           name: newExpense.category,
           amount: parseFloat(newExpense.amount),
-          percentage: 0, // Will be recalculated below
+          percentage: 0,
           color: categoryColors[newExpense.category] || '#607D8B'
         });
       }
       
-      // 3. Update summary statistics
       stats.summary.totalSpent += parseFloat(newExpense.amount);
       stats.summary.avgPerDay = stats.summary.totalSpent / 30;
       
@@ -159,23 +140,18 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         stats.summary.maxDay = dailySpendingEntry.amount;
       }
       
-      // 4. Recalculate category percentages
       stats.categories.forEach(category => {
         category.percentage = Math.round((category.amount / stats.summary.totalSpent) * 100) || 0;
       });
       
-      // 5. Save updated analytics data back to localStorage
       localStorage.setItem(ANALYTICS_STATS_KEY, JSON.stringify(stats));
       localStorage.setItem(ANALYTICS_TIMESTAMP_KEY, new Date().getTime().toString());
     } catch (error) {
       console.error('Error updating analytics data:', error);
-      // If there's an error updating analytics data, 
-      // we'll just let the Analytics component refresh it completely
     }
   };
   
   const dispatchExpenseAddedEvent = (expense) => {
-    // Create and dispatch custom event with expense data
     const event = new CustomEvent('expenseAdded', { 
       detail: expense 
     });
@@ -183,7 +159,6 @@ const AddExpenseForm = ({ onShowFullForm }) => {
   };
 
   const getUserId = (userName) => {
-    // Find matching user and return their ID
     const user = users?.find(u => u.name === userName);
     return user ? user.id : null;
   };
@@ -211,24 +186,19 @@ const AddExpenseForm = ({ onShowFullForm }) => {
     width: '100%'
   };
   
-  // Determine who can pay based on the selected group or available users
   const getPayers = () => {
     if (selectedGroup) {
       return selectedGroup.members;
     } else {
-      // If no group selected, use available users
       return users ? 
         ['You', ...users.filter(user => user.name !== 'You').map(user => user.name)] : 
         ['You'];
     }
   };
   
-  // Get payers for the dropdown
   const payers = getPayers();
   
-  // Display a message if no members are available for splitting
   const noMembers = !users || (users.filter(user => user.name !== 'You').length === 0 && groups.length === 0);
-  // No group members if a group is selected but has only one member (you)
   const noGroupMembers = selectedGroup && selectedGroup.members.length <= 1;
 
   return (
@@ -271,7 +241,6 @@ const AddExpenseForm = ({ onShowFullForm }) => {
             required
           />
           
-          {/* Group selector */}
           <select 
             value={selectedGroupId} 
             onChange={(e) => setSelectedGroupId(e.target.value)}

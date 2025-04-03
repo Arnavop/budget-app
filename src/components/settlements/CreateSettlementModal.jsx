@@ -12,11 +12,8 @@ const CreateSettlementModal = ({ onClose, onCreateSettlement, balances = [] }) =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Find users who you owe money to (users with negative balance)
   const usersYouOwe = users?.filter(user => {
-    // First try to find by userId
     const balanceById = balances.find(b => b.userId === user.id);
-    // If not found by userId, try by name
     const balanceByName = balances.find(b => b.name === user.name);
     
     const balance = balanceById || balanceByName;
@@ -27,12 +24,9 @@ const CreateSettlementModal = ({ onClose, onCreateSettlement, balances = [] }) =
     setSelectedUserId(e.target.value);
     setError('');
     
-    // Find the default amount for this user
     if (e.target.value) {
-      // Try to find balance by userId
       let userBalance = balances.find(b => b.userId === e.target.value);
       
-      // If not found, try to find by name
       if (!userBalance) {
         const selectedUser = users.find(u => u.id === e.target.value);
         if (selectedUser) {

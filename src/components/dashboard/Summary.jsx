@@ -12,7 +12,7 @@ const Summary = () => {
   const [activeTab, setActiveTab] = useState('balances');
   const { users: usersList } = useUsers();
   const { currentUser } = useAuth();
-  const { expenses } = useExpenses(); // Use the expenses from context
+  const { expenses } = useExpenses();
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [userBalance, setUserBalance] = useState(0);
   const [balances, setBalances] = useState([]);
@@ -22,17 +22,16 @@ const Summary = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!currentUser) return;
-      
+
       try {
         setLoading(true);
-        
-        // Use expenses from ExpenseContext instead of localStorage
+
         let total = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
         let userOwes = 0;
         let userIsOwed = 0;
-        
+
         const userBalances = {};
-        
+
         if (usersList) {
           usersList.forEach(user => {
             if (user.name !== 'You') {
@@ -44,17 +43,17 @@ const Summary = () => {
             }
           });
         }
-        
+
         expenses.forEach(expense => {
           if (!expense.amount) return;
-          
+
           const amount = parseFloat(expense.amount);
-          
+
           let splitCount = (expense.splitWith?.length || 0) + 1;
           if (splitCount < 1) splitCount = 1;
-          
+
           const splitAmount = amount / splitCount;
-          
+
           if (expense.paidBy === 'You') {
             expense.splitWith?.forEach(userName => {
               const user = usersList?.find(u => u.name === userName);
@@ -65,34 +64,34 @@ const Summary = () => {
             });
           } else {
             const paidByUser = usersList?.find(u => u.name === expense.paidBy);
-            
+
             if (paidByUser && userBalances[paidByUser.id]) {
               if (expense.splitWith) {
                 if (expense.splitWith.includes('You')) {
                   const userSplitAmount = splitAmount;
                   userBalances[paidByUser.id].balance -= userSplitAmount;
                   userOwes += userSplitAmount;
-                  
+
                   console.log(`Added debt to ${paidByUser.name}: ${userSplitAmount}`);
                 }
               } else {
                 const fallbackSplitAmount = amount / 2;
                 userBalances[paidByUser.id].balance -= fallbackSplitAmount;
                 userOwes += fallbackSplitAmount;
-                
+
                 console.log(`Fallback: Added debt to ${paidByUser.name}: ${fallbackSplitAmount}`);
               }
             }
           }
         });
-        
+
         console.log("Calculated balances:", userBalances);
         console.log("User owes:", userOwes, "User is owed:", userIsOwed);
-        
+
         setTotalExpenses(total);
         setUserBalance(userIsOwed - userOwes);
         setBalances(Object.values(userBalances));
-        
+
         const userSettlements = await users.getSettlements();
         setSettlements(userSettlements.filter(s => !s.completed));
       } catch (error) {
@@ -101,9 +100,9 @@ const Summary = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
-  }, [currentUser, usersList, expenses]); // Add expenses as a dependency
+  }, [currentUser, usersList, expenses]); 
 
   const hasData = () => {
     return balances.some(balance => balance.balance !== 0) || userBalance !== 0;
@@ -121,13 +120,13 @@ const Summary = () => {
           toUserId: settlement.toUserId
         }
       });
-      
+
       alert('Reminder sent!');
     } catch (error) {
       console.error('Error sending reminder:', error);
     }
   };
-  
+
   const handleRemindAll = async () => {
     try {
       for (const settlement of settlements) {
@@ -142,7 +141,7 @@ const Summary = () => {
           }
         });
       }
-      
+
       alert('All reminders sent!');
     } catch (error) {
       console.error('Error sending reminders:', error);
@@ -151,7 +150,7 @@ const Summary = () => {
 
   const handleCreateSettlement = async (userId, amount) => {
     if (!currentUser) return;
-    
+
     try {
       let fromUserId, toUserId;
       if (amount > 0) {
@@ -162,10 +161,10 @@ const Summary = () => {
         toUserId = userId;
         amount = Math.abs(amount);
       }
-      
+
       await users.createSettlement(fromUserId, toUserId, amount);
       alert('Settlement created successfully!');
-      
+
       const userSettlements = await users.getSettlements();
       setSettlements(userSettlements.filter(s => !s.completed));
     } catch (error) {
@@ -178,45 +177,45 @@ const Summary = () => {
     marginBottom: '20px',
     borderBottom: '1px solid var(--bg-tertiary)'
   };
-  
+
   const tabStyles = (isActive) => ({
     padding: '10px 15px',
     cursor: 'pointer',
     borderBottom: isActive ? '2px solid var(--accent)' : 'none',
     fontWeight: isActive ? 'bold' : 'normal'
   });
-  
+
   const userBalanceStyles = {
     fontSize: '24px',
     fontWeight: 'bold',
     marginBottom: '10px'
   };
-  
+
   const balanceListItemStyles = {
     display: 'flex',
     flexDirection: 'column',
     padding: '10px 0',
     borderBottom: '1px solid var(--bg-tertiary)'
   };
-  
+
   const balanceRowStyles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '4px'
   };
-  
+
   const balanceNameStyles = {
     fontSize: '16px',
     fontWeight: '500'
   };
-  
+
   const balanceAmountStyles = {
     fontSize: '16px',
     fontWeight: 'bold',
     marginRight: '10px'
   };
-  
+
   const balanceActionsStyles = {
     display: 'flex',
     alignItems: 'center'
@@ -235,7 +234,7 @@ const Summary = () => {
     marginRight: '8px',
     marginLeft: '8px',
   };
-  
+
   const actionButtonStyles = {
     backgroundColor: 'var(--accent)',
     color: 'white',
@@ -245,7 +244,7 @@ const Summary = () => {
     fontSize: '14px',
     cursor: 'pointer'
   };
-  
+
   const settlementItemStyles = {
     display: 'flex',
     justifyContent: 'space-between',
@@ -253,13 +252,13 @@ const Summary = () => {
     padding: '10px 0',
     borderBottom: '1px solid var(--bg-tertiary)'
   };
-  
+
   const settlementRightSideStyles = {
     display: 'flex',
     alignItems: 'center',
     gap: '10px'
   };
-  
+
   const footerLinkStyles = {
     display: 'block',
     textAlign: 'center',
@@ -269,7 +268,7 @@ const Summary = () => {
     padding: '10px',
     borderTop: '1px solid var(--bg-tertiary)',
   };
-  
+
   const emptyStateStyles = {
     textAlign: 'center',
     padding: '20px',
@@ -279,20 +278,20 @@ const Summary = () => {
   return (
     <Card>
       <div style={tabContainerStyles}>
-        <div 
-          style={tabStyles(activeTab === 'balances')} 
+        <div
+          style={tabStyles(activeTab === 'balances')}
           onClick={() => setActiveTab('balances')}
         >
           Balances
         </div>
-        <div 
-          style={tabStyles(activeTab === 'settlements')} 
+        <div
+          style={tabStyles(activeTab === 'settlements')}
           onClick={() => setActiveTab('settlements')}
         >
           Settlements
         </div>
       </div>
-      
+
       {loading ? (
         <div style={emptyStateStyles}>Loading balances...</div>
       ) : activeTab === 'balances' ? (
@@ -306,15 +305,15 @@ const Summary = () => {
               <span>$0.00</span>
             )}
           </div>
-          
+
           <div style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
-            {userBalance > 0 
-              ? 'You are owed money' 
-              : userBalance < 0 
-                ? 'You owe money' 
+            {userBalance > 0
+              ? 'You are owed money'
+              : userBalance < 0
+                ? 'You owe money'
                 : hasData() ? 'You are all settled up' : 'No expenses yet'}
           </div>
-          
+
           {balances.length > 0 ? (
             <div>
               {balances.map((balance) => (
@@ -335,17 +334,10 @@ const Summary = () => {
                           <span>$0.00</span>
                         )}
                       </div>
-                      {balance.balance !== 0 && (
-                        <button 
-                          style={actionButtonStyles}
-                          onClick={() => handleCreateSettlement(balance.userId, balance.balance)}
-                        >
-                          Settle Up
-                        </button>
-                      )}
+
                     </div>
                   </div>
-                  
+
                   {balance.balance !== 0 && (
                     <div style={settlementInstructionStyles}>
                       {balance.balance > 0 ? (
@@ -379,14 +371,14 @@ const Summary = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h3 style={{ margin: 0 }}>Outstanding Settlements</h3>
             {settlements.length > 0 && (
-              <Button 
-                text="Remind All" 
+              <Button
+                text="Remind All"
                 onClick={handleRemindAll}
                 variant="small"
               />
             )}
           </div>
-          
+
           {settlements.length === 0 ? (
             <div style={emptyStateStyles}>
               No outstanding settlements
@@ -401,7 +393,7 @@ const Summary = () => {
                       ${settlement.amount.toFixed(2)}
                     </div>
                     {settlement.fromUser !== 'You' && (
-                      <button 
+                      <button
                         style={actionButtonStyles}
                         onClick={() => handleRemind(settlement)}
                       >
@@ -409,7 +401,7 @@ const Summary = () => {
                       </button>
                     )}
                     {settlement.fromUser === 'You' && (
-                      <button 
+                      <button
                         style={actionButtonStyles}
                         onClick={async () => {
                           try {
@@ -431,7 +423,7 @@ const Summary = () => {
           )}
         </div>
       )}
-      
+
       <Link to="/settlements" style={footerLinkStyles}>
         View All Settlements →
       </Link>

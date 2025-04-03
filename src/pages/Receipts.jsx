@@ -3,7 +3,6 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 
 const Receipts = () => {
-  // Since we're using mock data, we'll create some sample receipts
   const [receipts, setReceipts] = useState([
     {
       id: 'receipt-1',
@@ -43,7 +42,6 @@ const Receipts = () => {
     
     setReceipts([newReceipt, ...receipts]);
     
-    // Reset form
     setNewReceiptDescription('');
     setNewReceiptAmount('');
     setIsUploading(false);

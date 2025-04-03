@@ -4,6 +4,7 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { useAuth } from '../hooks/useAuth';
 import { useUsers } from '../hooks/useUsers';
+import { useExpenses } from '../hooks/useExpenses';
 import CreateSettlementModal from '../components/settlements/CreateSettlementModal';
 import SettlementsList from '../components/settlements/SettlementsList';
 import BalancesSummary from '../components/settlements/BalancesSummary';
@@ -11,45 +12,61 @@ import BalancesSummary from '../components/settlements/BalancesSummary';
 const Settlements = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { getBalances, getSettlements, createSettlement, completeSettlement } = useUsers();
+  const { getBalances, getSettlements, createSettlement, completeSettlement, calculateBalancesFromExpenses } = useUsers();
+  const { expenses, deleteExpense } = useExpenses();
   
   const [balances, setBalances] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  // Fetch balances and settlements on component mount
+  const loadSettlementData = async () => {
+    try {
+      setLoading(true);
+      
+      // Remove the direct call to calculateBalancesFromExpenses() here to prevent infinite loop
+      // balances will be fetched directly via getBalances()
+      
+      const balancesData = await getBalances();
+      setBalances(balancesData);
+      
+      const settlementsData = await getSettlements();
+      setSettlements(settlementsData);
+    } catch (error) {
+      console.error('Error fetching settlement data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch user balances
-        const balancesData = await getBalances();
-        setBalances(balancesData);
-        
-        // Fetch settlements
-        const settlementsData = await getSettlements();
-        setSettlements(settlementsData);
-      } catch (error) {
-        console.error('Error fetching settlement data:', error);
-      } finally {
-        setLoading(false);
+    if (currentUser) {
+      loadSettlementData();
+    }
+  }, [currentUser, expenses]);
+  
+  // We'll keep this event listener but make sure it doesn't cause an infinite loop
+  // by adding a check to prevent reloading when the data is already loading
+  useEffect(() => {
+    const handleBalancesUpdated = () => {
+      // Only reload data if we're not currently loading to prevent infinite loops
+      if (!loading) {
+        loadSettlementData();
       }
     };
     
-    if (currentUser) {
-      fetchData();
-    }
-  }, [currentUser, getBalances, getSettlements]);
+    window.addEventListener('balancesUpdated', handleBalancesUpdated);
+    
+    return () => {
+      window.removeEventListener('balancesUpdated', handleBalancesUpdated);
+    };
+  }, [loading]); // Add loading as a dependency
   
-  // Handler for creating a new settlement
   const handleCreateSettlement = async (toUserId, amount) => {
     try {
       const newSettlement = await createSettlement(currentUser.id, toUserId, amount);
       setSettlements(prev => [...prev, newSettlement]);
       
-      // Refresh balances after creating a settlement
       const updatedBalances = await getBalances();
       setBalances(updatedBalances);
       
@@ -60,12 +77,16 @@ const Settlements = () => {
     }
   };
   
-  // Handler for marking a settlement as completed
-  const handleCompleteSettlement = async (settlementId) => {
+  const handleCompleteSettlement = async (settlementId, toUserId, amount) => {
     try {
+      // If settlementId is null, it means we're creating a new settlement
+      if (settlementId === null && toUserId && amount) {
+        return handleCreateSettlement(toUserId, amount);
+      }
+      
+      // Otherwise, we're completing an existing settlement
       await completeSettlement(settlementId);
       
-      // Update the local state
       setSettlements(prev => 
         prev.map(settlement => 
           settlement.id === settlementId 
@@ -74,14 +95,75 @@ const Settlements = () => {
         )
       );
       
-      // Refresh balances
       const updatedBalances = await getBalances();
       setBalances(updatedBalances);
     } catch (error) {
-      console.error('Error completing settlement:', error);
+      console.error('Error handling settlement:', error);
     }
   };
   
+  const handleSettleUp = async (userId, amount) => {
+    try {
+      // Find the user in the balances array to get their name
+      const userData = balances.find(b => b.userId === userId);
+      if (!userData) {
+        throw new Error('User not found in balances');
+      }
+      
+      // Create a new settlement directly marked as completed
+      const newSettlement = {
+        id: `settlement-${Date.now()}`,
+        fromUserId: currentUser.id,
+        toUserId: userId,
+        toUserName: userData.name,
+        amount: Math.abs(parseFloat(amount)),
+        created: new Date(),
+        completed: true
+      };
+      
+      // Find related expenses between these users
+      const relatedExpenses = expenses.filter(expense => {
+        // User A paid for User B
+        if (expense.paidBy === 'You' && expense.splitWith && expense.splitWith.includes(userData.name)) {
+          return true;
+        }
+        // User B paid for User A
+        if (expense.paidBy === userData.name && expense.splitWith && expense.splitWith.includes('You')) {
+          return true;
+        }
+        return false;
+      });
+      
+      // Delete related expenses
+      for (const expense of relatedExpenses) {
+        await deleteExpense(expense.id);
+      }
+      
+      // Add the settlement to the list
+      const updatedSettlements = [newSettlement, ...settlements];
+      setSettlements(updatedSettlements);
+      
+      // Update localStorage
+      localStorage.setItem('budget_app_settlements', JSON.stringify(updatedSettlements));
+      
+      // Recalculate balances
+      await calculateBalancesFromExpenses();
+      
+      // Refresh data
+      const updatedBalances = await getBalances();
+      setBalances(updatedBalances);
+      
+      // Trigger events to update other components
+      window.dispatchEvent(new CustomEvent('balancesUpdated'));
+      window.dispatchEvent(new CustomEvent('expensesUpdated'));
+      
+      return newSettlement;
+    } catch (error) {
+      console.error('Error settling up:', error);
+      throw error;
+    }
+  };
+
   const pageStyles = {
     padding: '20px',
     maxWidth: '800px',
@@ -122,17 +204,26 @@ const Settlements = () => {
       ) : (
         <>
           <div style={sectionStyles}>
-            <BalancesSummary balances={balances} />
-          </div>
-          
-          <div style={sectionStyles}>
-            <h2>Active Settlements</h2>
-            <SettlementsList 
-              settlements={settlements.filter(s => !s.completed)} 
-              onCompleteSettlement={handleCompleteSettlement}
-              isActive={true}
+            <BalancesSummary 
+              balances={balances} 
+              onCreateSettlement={handleCreateSettlement}
+              renderActions={(balance) => (
+                balance.balance !== 0 && (
+                  <Button 
+                    text="Settle Up" 
+                    onClick={() => handleSettleUp(balance.userId, balance.balance)}
+                    style={{
+                      backgroundColor: 'var(--accent)',
+                      color: 'white',
+                      fontSize: '14px',
+                      padding: '6px 12px',
+                    }}
+                  />
+                )
+              )}
             />
           </div>
+          
           
           <div style={sectionStyles}>
             <h2>Settlement History</h2>
