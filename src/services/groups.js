@@ -1,4 +1,7 @@
-import { v4 as uuidv4 } from 'uuid';
+// Helper function to generate unique IDs
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
 
 // LocalStorage keys
 const STORAGE_KEY = 'budget_app_groups';
@@ -103,7 +106,7 @@ const create = async (groupData) => {
   
   // Create new group with unique ID
   const newGroup = {
-    id: uuidv4(),
+    id: generateId(),
     name: groupData.name,
     icon: groupData.icon || '👥',
     members: ['You', ...(groupData.members || [])], // Always include the current user
@@ -368,7 +371,7 @@ const createSettlement = async (groupId, fromUserId, toUserId, amount) => {
   
   // Create new settlement
   const newSettlement = {
-    id: uuidv4(),
+    id: generateId(),
     groupId,
     fromUserId,
     toUserId,

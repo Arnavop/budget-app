@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+import usersService from '../services/users';
 
 export const UserContext = createContext();
 
@@ -12,62 +13,39 @@ export const UserProvider = ({ children }) => {
   const [balances, setBalances] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock users data
-  const mockUsers = [
-    {
-      id: '1',
-      name: 'You',
-      email: 'user@example.com',
-      avatar: 'Y',
-      color: 'var(--accent)'
-    },
-    {
-      id: '2',
-      name: 'Alex',
-      email: 'alex@example.com',
-      avatar: 'A',
-      color: '#4285F4'
-    },
-    {
-      id: '3',
-      name: 'Sam',
-      email: 'sam@example.com',
-      avatar: 'S',
-      color: '#EA4335'
-    },
-    {
-      id: '4',
-      name: 'Jordan',
-      email: 'jordan@example.com',
-      avatar: 'J',
-      color: '#34A853'
-    }
-  ];
-
   useEffect(() => {
-    // Load users
-    setUsers(mockUsers);
+    const loadData = async () => {
+      try {
+        // Load users from service which uses localStorage
+        const loadedUsers = await usersService.getAll();
+        setUsers(loadedUsers);
+        
+        // Load settlements from localStorage
+        const storedSettlements = localStorage.getItem(SETTLEMENTS_STORAGE_KEY);
+        if (storedSettlements) {
+          setSettlements(JSON.parse(storedSettlements));
+        }
+        
+        // Load balances from localStorage
+        const storedBalances = localStorage.getItem(BALANCES_STORAGE_KEY);
+        if (storedBalances) {
+          setBalances(JSON.parse(storedBalances));
+        } else {
+          // Calculate initial balances from expenses if available
+          calculateBalancesFromExpenses(loadedUsers);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Load settlements from localStorage
-    const storedSettlements = localStorage.getItem(SETTLEMENTS_STORAGE_KEY);
-    if (storedSettlements) {
-      setSettlements(JSON.parse(storedSettlements));
-    }
-    
-    // Load balances from localStorage
-    const storedBalances = localStorage.getItem(BALANCES_STORAGE_KEY);
-    if (storedBalances) {
-      setBalances(JSON.parse(storedBalances));
-    } else {
-      // Calculate initial balances from expenses if available
-      calculateBalancesFromExpenses();
-    }
-    
-    setLoading(false);
+    loadData();
   }, []);
   
   // Calculate balances from expenses in localStorage
-  const calculateBalancesFromExpenses = () => {
+  const calculateBalancesFromExpenses = (currentUsers = users) => {
     try {
       const storedExpenses = localStorage.getItem(EXPENSES_STORAGE_KEY);
       if (!storedExpenses) return [];
@@ -92,7 +70,8 @@ export const UserProvider = ({ children }) => {
         if (paidBy === 'You') {
           // Add positive balance (others owe you)
           splitWith.forEach(user => {
-            const userId = mockUsers.find(u => u.name === user)?.id || user;
+            const userObj = currentUsers.find(u => u.name === user);
+            const userId = userObj?.id || user;
             if (!userBalances[userId]) {
               userBalances[userId] = { userId, name: user, balance: 0 };
             }
@@ -103,7 +82,8 @@ export const UserProvider = ({ children }) => {
         else {
           // Add negative balance (you owe them)
           if (splitWith.includes('You')) {
-            const userId = mockUsers.find(u => u.name === paidBy)?.id || paidBy;
+            const userObj = currentUsers.find(u => u.name === paidBy);
+            const userId = userObj?.id || paidBy;
             if (!userBalances[userId]) {
               userBalances[userId] = { userId, name: paidBy, balance: 0 };
             }
@@ -205,23 +185,43 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const addUser = (user) => {
-    setUsers([...users, { ...user, id: Date.now().toString() }]);
+  const addUser = async (user) => {
+    try {
+      const newUser = await usersService.addCustomMember(user);
+      setUsers([...users, newUser]);
+      return newUser;
+    } catch (error) {
+      console.error('Error adding user:', error);
+      throw error;
+    }
   };
 
-  const updateUser = (id, updatedUser) => {
-    setUsers(users.map(user => 
-      user.id === id ? { ...user, ...updatedUser } : user
-    ));
+  const updateUser = async (id, updatedUser) => {
+    try {
+      await usersService.update(id, updatedUser);
+      setUsers(users.map(user => 
+        user.id === id ? { ...user, ...updatedUser } : user
+      ));
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
   };
 
-  const deleteUser = (id) => {
-    setUsers(users.filter(user => user.id !== id));
+  const deleteUser = async (id) => {
+    try {
+      await usersService.delete(id);
+      setUsers(users.filter(user => user.id !== id));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
   };
 
   return (
     <UserContext.Provider value={{
       users,
+      setUsers,  // Add setUsers to the context
       loading,
       addUser,
       updateUser,

@@ -11,8 +11,15 @@ const Header = () => {
   // Determine active page based on current path
   const getActivePage = () => {
     const path = location.pathname;
-    if (path.includes('/dashboard')) return 'dashboard';
-    if (path.includes('/groups')) return 'groups';
+    
+    // Check for groups first to ensure it has priority
+    if (path.includes('/groups') || path === '/dashboard/groups' || path.includes('/group/')) {
+      return 'groups';
+    }
+    
+    if (path === '/dashboard' || path.includes('/dashboard')) {
+      return 'dashboard';
+    }
     if (path.includes('/history')) return 'history';
     if (path.includes('/analytics')) return 'analytics';
     if (path.includes('/receipts')) return 'receipts';

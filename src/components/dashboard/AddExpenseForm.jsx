@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useUsers } from '../../hooks/useUsers';
 import { useAuth } from '../../hooks/useAuth';
+import { GroupContext } from '../../contexts/GroupContext';
+import { useContext } from 'react';
 import activities from '../../services/activities';
 
-const STORAGE_KEY = 'budget_app_recent_expenses';
+// Keep these for analytics since they're separate from expense storage
 const ANALYTICS_STATS_KEY = 'analyticsStats';
 const ANALYTICS_TIMESTAMP_KEY = 'analyticsTimestamp';
 
@@ -15,12 +17,22 @@ const AddExpenseForm = ({ onShowFullForm }) => {
   const { addExpense } = useExpenses();
   const { users } = useUsers();
   const { currentUser } = useAuth();
+  const { groups } = useContext(GroupContext);
   
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [paidBy, setPaidBy] = useState('You paid');
   const [category, setCategory] = useState('Food');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Get the selected group object
+  const selectedGroup = selectedGroupId ? groups.find(group => group.id === selectedGroupId) : null;
+  
+  // Effect to reset paidBy when group changes
+  useEffect(() => {
+    setPaidBy('You paid');
+  }, [selectedGroupId]);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,16 +44,19 @@ const AddExpenseForm = ({ onShowFullForm }) => {
       // Extract the person who paid (remove " paid" suffix)
       const payer = paidBy.replace(' paid', '');
       
-      // Create appropriate splitWith array based on who paid
+      // Determine split users based on selected group or individual users
       let splitWithUsers;
       
-      if (payer === 'You') {
-        // If you paid, split with everyone else
+      if (selectedGroup) {
+        // If a group is selected, use group members excluding the payer
+        splitWithUsers = selectedGroup.members.filter(member => member !== payer);
+      } else if (payer === 'You') {
+        // If you paid and no group selected, split with all other users
         splitWithUsers = users ? 
           users.filter(user => user.name !== 'You').map(user => user.name) : 
-          ['Alex', 'Sam', 'Jordan']; // Fallback if no users loaded
+          []; // Empty array if no users loaded
       } else {
-        // If someone else paid, include "You" in the split
+        // If someone else paid and no group selected, include yourself in split
         splitWithUsers = users ?
           users.filter(user => user.name !== payer && user.name !== 'You')
             .map(user => user.name)
@@ -59,6 +74,7 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         splitMethod: 'equal',
         category,
         notes: '',
+        groupId: selectedGroupId || null, // Associate with group if selected
       });
 
       // Create activity record for the new expense
@@ -68,12 +84,11 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         resourceId: newExpense.id,
         metadata: {
           description,
-          amount: parseFloat(amount)
+          amount: parseFloat(amount),
+          groupId: selectedGroupId || null,
+          groupName: selectedGroup ? selectedGroup.name : null
         }
       });
-      
-      // Save to localStorage
-      saveToLocalStorage(newExpense);
       
       // Update analytics data with the new expense
       updateAnalyticsData(newExpense);
@@ -89,23 +104,6 @@ const AddExpenseForm = ({ onShowFullForm }) => {
       console.error('Error adding expense:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const saveToLocalStorage = (newExpense) => {
-    try {
-      // Get existing expenses from localStorage
-      const storedExpenses = localStorage.getItem(STORAGE_KEY);
-      let expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
-      
-      // Add new expense and sort by date (newest first)
-      expenses = [newExpense, ...expenses]
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-      
-      // Save back to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-    } catch (error) {
-      console.error('Error saving to localStorage:', error);
     }
   };
 
@@ -186,7 +184,7 @@ const AddExpenseForm = ({ onShowFullForm }) => {
 
   const getUserId = (userName) => {
     // Find matching user and return their ID
-    const user = users.find(u => u.name === userName);
+    const user = users?.find(u => u.name === userName);
     return user ? user.id : null;
   };
 
@@ -212,6 +210,26 @@ const AddExpenseForm = ({ onShowFullForm }) => {
     color: 'var(--text-primary)',
     width: '100%'
   };
+  
+  // Determine who can pay based on the selected group or available users
+  const getPayers = () => {
+    if (selectedGroup) {
+      return selectedGroup.members;
+    } else {
+      // If no group selected, use available users
+      return users ? 
+        ['You', ...users.filter(user => user.name !== 'You').map(user => user.name)] : 
+        ['You'];
+    }
+  };
+  
+  // Get payers for the dropdown
+  const payers = getPayers();
+  
+  // Display a message if no members are available for splitting
+  const noMembers = !users || (users.filter(user => user.name !== 'You').length === 0 && groups.length === 0);
+  // No group members if a group is selected but has only one member (you)
+  const noGroupMembers = selectedGroup && selectedGroup.members.length <= 1;
 
   return (
     <Card>
@@ -224,55 +242,90 @@ const AddExpenseForm = ({ onShowFullForm }) => {
         />
       </div>
       
-      <form onSubmit={handleSubmit} style={expenseFormStyles}>
-        <Input
-          type="text"
-          placeholder="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          disabled={loading}
-          required
-        />
-        <Input
-          type="number"
-          placeholder="Amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          disabled={loading}
-          required
-        />
-        <select 
-          value={paidBy} 
-          onChange={(e) => setPaidBy(e.target.value)}
-          style={selectStyles}
-          disabled={loading}
-        >
-          <option>You paid</option>
-          {users && users
-            .filter(user => user.name !== 'You')
-            .map(user => (
-              <option key={user.id}>{user.name} paid</option>
-            ))
-          }
-        </select>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          style={selectStyles}
-          disabled={loading}
-        >
-          <option value="Food">Food</option>
-          <option value="Transport">Transport</option>
-          <option value="Entertainment">Entertainment</option>
-          <option value="Utilities">Utilities</option>
-          <option value="Other">Other</option>
-        </select>
-        <Button 
-          type="submit" 
-          text={loading ? "Adding..." : "Add Expense"} 
-          disabled={loading}
-        />
-      </form>
+      {noMembers ? (
+        <div style={{ textAlign: 'center', padding: '15px', color: 'var(--text-secondary)' }}>
+          <p>No members available to split expenses with.</p>
+          <p>Go to Settings → Manage Members to add people.</p>
+          <Button 
+            text="Go to Settings" 
+            onClick={() => window.location.href = '/settings'}
+            style={{ marginTop: '10px' }}
+          />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} style={expenseFormStyles}>
+          <Input
+            type="text"
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={loading}
+            required
+          />
+          <Input
+            type="number"
+            placeholder="Amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            disabled={loading}
+            required
+          />
+          
+          {/* Group selector */}
+          <select 
+            value={selectedGroupId} 
+            onChange={(e) => setSelectedGroupId(e.target.value)}
+            style={selectStyles}
+            disabled={loading}
+          >
+            <option value="">No group (individual expense)</option>
+            {groups.map(group => (
+              <option key={group.id} value={group.id}>{group.name}</option>
+            ))}
+          </select>
+          
+          {noGroupMembers ? (
+            <div style={{ padding: '10px', color: 'var(--error)', fontSize: '14px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}>
+              Selected group doesn't have enough members to split expenses.
+            </div>
+          ) : null}
+          
+          <select 
+            value={paidBy} 
+            onChange={(e) => setPaidBy(e.target.value)}
+            style={selectStyles}
+            disabled={loading}
+          >
+            {payers.map(payer => (
+              <option key={payer}>{payer === 'You' ? 'You paid' : `${payer} paid`}</option>
+            ))}
+          </select>
+          
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            style={selectStyles}
+            disabled={loading}
+          >
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Other">Other</option>
+          </select>
+          <Button 
+            type="submit" 
+            text={loading ? "Adding..." : "Add Expense"} 
+            disabled={loading || noGroupMembers}
+          />
+          
+          {selectedGroup && (
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', padding: '10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px' }}>
+              This expense will be split among: {selectedGroup.members.join(', ')}
+            </div>
+          )}
+        </form>
+      )}
     </Card>
   );
 };

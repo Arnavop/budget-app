@@ -1,8 +1,60 @@
 import { mockUsers, mockSettlements, generateId } from './mockData';
 import { auth } from './auth';
 
-let usersData = [...mockUsers];
-let settlementsData = [...mockSettlements];
+// LocalStorage key for users
+const USERS_STORAGE_KEY = 'budget_app_users';
+const SETTLEMENTS_STORAGE_KEY = 'budget_app_settlements';
+
+// Initialize with localStorage data or fallback to mockUsers
+let usersData = [];
+
+// Load users from localStorage or initialize with mockUsers
+try {
+  const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
+  if (storedUsers) {
+    usersData = JSON.parse(storedUsers);
+  } else {
+    usersData = [...mockUsers];
+    // Save mock users to localStorage initially
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(usersData));
+  }
+} catch (error) {
+  console.error('Error loading users from localStorage:', error);
+  usersData = [...mockUsers];
+}
+
+// Initialize settlements
+let settlementsData = [];
+try {
+  const storedSettlements = localStorage.getItem(SETTLEMENTS_STORAGE_KEY);
+  if (storedSettlements) {
+    settlementsData = JSON.parse(storedSettlements);
+  } else {
+    settlementsData = [...mockSettlements];
+    localStorage.setItem(SETTLEMENTS_STORAGE_KEY, JSON.stringify(settlementsData));
+  }
+} catch (error) {
+  console.error('Error loading settlements from localStorage:', error);
+  settlementsData = [...mockSettlements];
+}
+
+// Helper function to save users to localStorage
+const saveUsersToStorage = () => {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(usersData));
+  } catch (error) {
+    console.error('Error saving users to localStorage:', error);
+  }
+};
+
+// Helper function to save settlements to localStorage
+const saveSettlementsToStorage = () => {
+  try {
+    localStorage.setItem(SETTLEMENTS_STORAGE_KEY, JSON.stringify(settlementsData));
+  } catch (error) {
+    console.error('Error saving settlements to localStorage:', error);
+  }
+};
 
 const users = {
   getAll: async () => {
@@ -76,6 +128,7 @@ const users = {
       };
       
       usersData.push(newUser);
+      saveUsersToStorage(); // Save to localStorage
       
       return newUser;
     } catch (error) {
@@ -105,6 +158,7 @@ const users = {
       };
       
       usersData[userIndex] = updatedUser;
+      saveUsersToStorage(); // Save to localStorage
       
       return {
         ...updatedUser,
@@ -118,7 +172,59 @@ const users = {
   },
   
   delete: async (id) => {
-    throw new Error('Account deletion must be performed through auth service');
+    try {
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      // Don't allow deleting current user (must go through auth)
+      if (id === currentUser.id) {
+        throw new Error('Cannot delete current user through this method');
+      }
+      
+      // Only delete non-current users
+      const userIndex = usersData.findIndex(u => u.id === id);
+      
+      if (userIndex === -1) {
+        throw new Error('User not found');
+      }
+      
+      // Remove the user
+      usersData.splice(userIndex, 1);
+      saveUsersToStorage(); // Save to localStorage
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  },
+  
+  addCustomMember: async (memberData) => {
+    try {
+      // Check if a member with the same name already exists
+      if (usersData.some(u => u.name.toLowerCase() === memberData.name.toLowerCase())) {
+        throw new Error('A member with this name already exists');
+      }
+      
+      const newMember = {
+        id: generateId('user'),
+        name: memberData.name,
+        email: `${memberData.name.toLowerCase().replace(/\s+/g, '')}@example.com`,
+        color: memberData.color || 'blue',
+        avatar: memberData.name.charAt(0).toUpperCase(),
+        isCustomMember: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      usersData.push(newMember);
+      saveUsersToStorage(); // Save to localStorage
+      
+      return newMember;
+    } catch (error) {
+      console.error('Error adding custom member:', error);
+      throw error;
+    }
   },
   
   getUserBalance: async (userId) => {
@@ -190,6 +296,7 @@ const users = {
       };
       
       settlementsData.push(newSettlement);
+      saveSettlementsToStorage(); // Save to localStorage
       
       return newSettlement;
     } catch (error) {
@@ -207,6 +314,7 @@ const users = {
       }
       
       settlementsData[settlementIndex].completed = true;
+      saveSettlementsToStorage(); // Save to localStorage
       
       return settlementsData[settlementIndex];
     } catch (error) {

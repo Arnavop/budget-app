@@ -1,7 +1,27 @@
 import { generateId } from './mockData';
 import { auth } from './auth';
 
+const STORAGE_KEY = 'budget_app_expenses';
+
+// Initialize expensesData from localStorage or use empty array if nothing is stored
 let expensesData = [];
+try {
+  const storedExpenses = localStorage.getItem(STORAGE_KEY);
+  if (storedExpenses) {
+    expensesData = JSON.parse(storedExpenses);
+  }
+} catch (error) {
+  console.error('Error loading expenses from localStorage:', error);
+}
+
+// Helper function to save expenses to localStorage
+const saveExpensesToStorage = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(expensesData));
+  } catch (error) {
+    console.error('Error saving expenses to localStorage:', error);
+  }
+};
 
 const expenses = {
   getAll: async () => {
@@ -58,6 +78,9 @@ const expenses = {
       
       expensesData.unshift(newExpense);
       
+      // Save to localStorage after creating
+      saveExpensesToStorage();
+      
       return newExpense;
     } catch (error) {
       console.error('Error creating expense:', error);
@@ -101,6 +124,9 @@ const expenses = {
       
       expensesData[expenseIndex] = updatedExpense;
       
+      // Save to localStorage after updating
+      saveExpensesToStorage();
+      
       return updatedExpense;
     } catch (error) {
       console.error('Error updating expense:', error);
@@ -120,6 +146,9 @@ const expenses = {
       }
       
       expensesData.splice(expenseIndex, 1);
+      
+      // Save to localStorage after deleting
+      saveExpensesToStorage();
       
       return { success: true };
     } catch (error) {
@@ -181,6 +210,9 @@ const expenses = {
       }
       
       expensesData[expenseIndex].isSettled = settled;
+      
+      // Save to localStorage after settling expense
+      saveExpensesToStorage();
       
       return expensesData[expenseIndex];
     } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
+import ManageMembers from '../components/settings/ManageMembers';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
@@ -48,6 +49,11 @@ const Settings = () => {
   return (
     <div className="container">
       <h1>Settings</h1>
+      
+      {/* Manage Members - New section */}
+      <div style={{ marginBottom: '20px' }}>
+        <ManageMembers />
+      </div>
       
       {/* Theme Settings */}
       <Card style={{ marginBottom: '20px' }}>

@@ -6,13 +6,13 @@ import { useUsers } from '../../hooks/useUsers';
 import users from '../../services/users';
 import activities from '../../services/activities';
 import { useAuth } from '../../hooks/useAuth';
-
-const STORAGE_KEY = 'budget_app_recent_expenses';
+import { useExpenses } from '../../hooks/useExpenses';
 
 const Summary = () => {
   const [activeTab, setActiveTab] = useState('balances');
   const { users: usersList } = useUsers();
   const { currentUser } = useAuth();
+  const { expenses } = useExpenses(); // Use the expenses from context
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [userBalance, setUserBalance] = useState(0);
   const [balances, setBalances] = useState([]);
@@ -26,11 +26,7 @@ const Summary = () => {
       try {
         setLoading(true);
         
-        const storedExpenses = localStorage.getItem(STORAGE_KEY);
-        const expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
-        
-        console.log("Loaded expenses:", expenses);
-        
+        // Use expenses from ExpenseContext instead of localStorage
         let total = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
         let userOwes = 0;
         let userIsOwed = 0;
@@ -94,36 +90,11 @@ const Summary = () => {
         console.log("User owes:", userOwes, "User is owed:", userIsOwed);
         
         setTotalExpenses(total);
-        
         setUserBalance(userIsOwed - userOwes);
-        
         setBalances(Object.values(userBalances));
         
         const userSettlements = await users.getSettlements();
         setSettlements(userSettlements.filter(s => !s.completed));
-        
-        const handleExpenseChange = () => {
-          fetchData();
-        };
-        
-        window.addEventListener('expenseAdded', handleExpenseChange);
-        window.addEventListener('expenseDeleted', handleExpenseChange);
-        window.addEventListener('expenseUpdated', handleExpenseChange);
-
-        const dispatchExpenseAddedEvent = (expense) => {
-          const event = new CustomEvent('expenseAdded', { 
-            detail: expense,
-            bubbles: true,
-            cancelable: true
-          });
-          window.dispatchEvent(event);
-        };
-        
-        return () => {
-          window.removeEventListener('expenseAdded', handleExpenseChange);
-          window.removeEventListener('expenseDeleted', handleExpenseChange);
-          window.removeEventListener('expenseUpdated', handleExpenseChange);
-        };
       } catch (error) {
         console.error('Error calculating balances:', error);
       } finally {
@@ -132,7 +103,7 @@ const Summary = () => {
     };
     
     fetchData();
-  }, [currentUser, usersList]);
+  }, [currentUser, usersList, expenses]); // Add expenses as a dependency
 
   const hasData = () => {
     return balances.some(balance => balance.balance !== 0) || userBalance !== 0;
