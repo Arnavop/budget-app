@@ -7,12 +7,14 @@ import users from '../../services/users';
 import activities from '../../services/activities';
 import { useAuth } from '../../hooks/useAuth';
 import { useExpenses } from '../../hooks/useExpenses';
+import { useCurrency } from '../../hooks/useCurrency';
 
 const Summary = () => {
   const [activeTab, setActiveTab] = useState('balances');
   const { users: usersList } = useUsers();
   const { currentUser } = useAuth();
   const { expenses } = useExpenses();
+  const { formatAmount } = useCurrency();
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [userBalance, setUserBalance] = useState(0);
   const [balances, setBalances] = useState([]);
@@ -298,11 +300,11 @@ const Summary = () => {
         <div>
           <div style={userBalanceStyles}>
             {userBalance > 0 ? (
-              <span style={{ color: 'var(--success)' }}>+${userBalance.toFixed(2)}</span>
+              <span style={{ color: 'var(--success)' }}>+{formatAmount(userBalance)}</span>
             ) : userBalance < 0 ? (
-              <span style={{ color: 'var(--error)' }}>${userBalance.toFixed(2)}</span>
+              <span style={{ color: 'var(--error)' }}>{formatAmount(userBalance)}</span>
             ) : (
-              <span>$0.00</span>
+              <span>{formatAmount(0)}</span>
             )}
           </div>
 
@@ -324,14 +326,14 @@ const Summary = () => {
                       <div style={balanceAmountStyles}>
                         {balance.balance > 0 ? (
                           <span style={{ color: 'var(--success)' }}>
-                            +${balance.balance.toFixed(2)}
+                            +{formatAmount(balance.balance)}
                           </span>
                         ) : balance.balance < 0 ? (
                           <span style={{ color: 'var(--error)' }}>
-                            ${balance.balance.toFixed(2)}
+                            {formatAmount(balance.balance)}
                           </span>
                         ) : (
-                          <span>$0.00</span>
+                          <span>{formatAmount(0)}</span>
                         )}
                       </div>
 
@@ -346,7 +348,7 @@ const Summary = () => {
                           <span style={arrowStyles}>→</span>
                           <span>You</span>
                           <span style={arrowStyles}>•</span>
-                          <span>${balance.balance.toFixed(2)}</span>
+                          <span>{formatAmount(balance.balance)}</span>
                         </>
                       ) : (
                         <>
@@ -354,7 +356,7 @@ const Summary = () => {
                           <span style={arrowStyles}>→</span>
                           <span>{balance.name}</span>
                           <span style={arrowStyles}>•</span>
-                          <span>${Math.abs(balance.balance).toFixed(2)}</span>
+                          <span>{formatAmount(Math.abs(balance.balance))}</span>
                         </>
                       )}
                     </div>
@@ -390,7 +392,7 @@ const Summary = () => {
                   <span>{settlement.toUser}</span>
                   <div style={settlementRightSideStyles}>
                     <div style={balanceAmountStyles}>
-                      ${settlement.amount.toFixed(2)}
+                      {formatAmount(settlement.amount)}
                     </div>
                     {settlement.fromUser !== 'You' && (
                       <button

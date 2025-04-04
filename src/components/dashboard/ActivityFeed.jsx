@@ -12,17 +12,17 @@ const ActivityFeed = () => {
 
   const loadActivities = async () => {
     if (!currentUser) return;
-    
+
     try {
       setLoading(true);
-      
+
       const storedActivities = localStorage.getItem(ACTIVITY_STORAGE_KEY);
       let activitiesData = storedActivities ? JSON.parse(storedActivities) : [];
-      
+
       const storedExpenses = localStorage.getItem(STORAGE_KEY);
       if (storedExpenses) {
         const expenses = JSON.parse(storedExpenses);
-        
+
         const expenseActivities = expenses.map(expense => ({
           id: `expense-${expense.id}`,
           action: 'created',
@@ -36,21 +36,21 @@ const ActivityFeed = () => {
           },
           createdAt: expense.date
         }));
-        
+
         activitiesData = [...expenseActivities, ...activitiesData];
       }
-      
+
       localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(activitiesData));
-      
+
       const formattedActivities = await Promise.all(activitiesData.map(async (activity) => {
         const isCurrentUser = activity.userId === currentUser.id;
-        
+
         const actor = isCurrentUser ? 'You' : (activity.user?.name || 'Someone');
-        
+
         let title = '';
         if (activity.resourceType === 'expense') {
           const expenseName = activity.metadata?.description || 'an expense';
-          
+
           switch (activity.action) {
             case 'created':
               title = `${actor} added "${expenseName}" expense`;
@@ -66,7 +66,7 @@ const ActivityFeed = () => {
           }
         } else if (activity.resourceType === 'group') {
           const groupName = activity.metadata?.name || 'a group';
-          
+
           switch (activity.action) {
             case 'created':
               title = `${actor} created "${groupName}" group`;
@@ -82,11 +82,11 @@ const ActivityFeed = () => {
           }
         } else if (activity.resourceType === 'settlement') {
           const amount = activity.metadata?.amount ?? 0;
-          
+
           if (activity.action === 'created') {
             const fromUserId = activity.metadata?.fromUserId;
             const toUserId = activity.metadata?.toUserId;
-            
+
             if (fromUserId === currentUser.id) {
               const toName = activity.metadata?.toUser || 'someone';
               title = `${actor} created a settlement to pay ${toName} $${amount.toFixed(2)}`;
@@ -106,16 +106,16 @@ const ActivityFeed = () => {
         } else {
           title = `${actor} ${activity.action} ${activity.resourceType}`;
         }
-        
+
         return {
           id: activity.id,
           title,
           timestamp: new Date(activity.createdAt)
         };
       }));
-      
+
       formattedActivities.sort((a, b) => b.timestamp - a.timestamp);
-      
+
       setActivityItems(formattedActivities);
     } catch (error) {
       console.error('Error fetching activities:', error);
@@ -123,7 +123,7 @@ const ActivityFeed = () => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     loadActivities();
   }, [currentUser]);
@@ -131,11 +131,11 @@ const ActivityFeed = () => {
   const addActivity = (activity) => {
     const isCurrentUser = activity.userId === currentUser?.id;
     const actor = isCurrentUser ? 'You' : (activity.user?.name || 'Someone');
-    
+
     let title = '';
     if (activity.resourceType === 'expense') {
       const expenseName = activity.metadata?.description || 'an expense';
-      
+
       switch (activity.action) {
         case 'created':
           title = `${actor} added "${expenseName}" expense`;
@@ -150,20 +150,20 @@ const ActivityFeed = () => {
           title = `${actor} ${activity.action} expense "${expenseName}"`;
       }
     }
-    
+
     const formattedActivity = {
       id: activity.id,
       title,
       timestamp: new Date(activity.createdAt || new Date())
     };
-    
+
     setActivityItems(prev => {
       const updated = [formattedActivity, ...prev];
       return updated
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 20);
     });
-    
+
     try {
       const storedActivities = localStorage.getItem(ACTIVITY_STORAGE_KEY);
       const activities = storedActivities ? JSON.parse(storedActivities) : [];
@@ -173,11 +173,11 @@ const ActivityFeed = () => {
       console.error('Error updating activities in localStorage:', error);
     }
   };
-  
+
   useEffect(() => {
     const handleExpenseAdded = (event) => {
       const expense = event.detail;
-      
+
       const activity = {
         id: `expense-${expense.id}-${Date.now()}`,
         action: 'created',
@@ -191,13 +191,13 @@ const ActivityFeed = () => {
         },
         createdAt: new Date().toISOString()
       };
-      
+
       addActivity(activity);
     };
-    
+
     const handleExpenseUpdated = (event) => {
       const expense = event.detail;
-      
+
       const activity = {
         id: `expense-update-${expense.id}-${Date.now()}`,
         action: 'updated',
@@ -211,13 +211,13 @@ const ActivityFeed = () => {
         },
         createdAt: new Date().toISOString()
       };
-      
+
       addActivity(activity);
     };
-    
+
     const handleExpenseDeleted = (event) => {
       const { id } = event.detail;
-      
+
       const activity = {
         id: `expense-delete-${id}-${Date.now()}`,
         action: 'deleted',
@@ -228,14 +228,14 @@ const ActivityFeed = () => {
         metadata: {},
         createdAt: new Date().toISOString()
       };
-      
+
       addActivity(activity);
     };
-    
+
     window.addEventListener('expenseAdded', handleExpenseAdded);
     window.addEventListener('expenseUpdated', handleExpenseUpdated);
     window.addEventListener('expenseDeleted', handleExpenseDeleted);
-    
+
     return () => {
       window.removeEventListener('expenseAdded', handleExpenseAdded);
       window.removeEventListener('expenseUpdated', handleExpenseUpdated);
@@ -247,19 +247,19 @@ const ActivityFeed = () => {
     padding: 0,
     overflow: 'hidden'
   };
-  
+
   const itemStyles = {
     padding: '15px 20px',
     borderBottom: '1px solid var(--bg-tertiary)',
     position: 'relative'
   };
-  
+
   const itemTitleStyles = {
     margin: '0 0 5px 0',
     fontSize: '15px',
     fontWeight: 'normal'
   };
-  
+
   const timeStyles = {
     color: 'var(--text-secondary)',
     fontSize: '13px'
@@ -270,7 +270,7 @@ const ActivityFeed = () => {
       <div style={{ borderBottom: '1px solid var(--bg-tertiary)', padding: '15px 20px' }}>
         <h3 style={{ margin: 0 }}>Recent Activity</h3>
       </div>
-      
+
       {loading ? (
         <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
       ) : activityItems.length === 0 ? (

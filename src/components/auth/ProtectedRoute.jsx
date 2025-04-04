@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom'; //use location contains pathname, search, hash, state
 import { useAuth } from '../../hooks/useAuth';
 
 const ProtectedRoute = ({ children }) => {

@@ -24,110 +24,113 @@ import { UserProvider } from './contexts/UserContext';
 import { ExpenseProvider } from './contexts/ExpenseContext';
 import { GroupProvider } from './contexts/GroupContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <UserProvider>
-          <ExpenseProvider>
-            <GroupProvider>
-              <NotificationProvider>
-                <Router>
-                  <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    
-                    {/* Protected routes with MainLayout */}
-                    <Route path="/profile" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <UserProfile />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/settlements" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <Settlements />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/expenses/:id" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <ExpenseDetail />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/dashboard" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <Dashboard />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/dashboard/groups" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <Groups />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/dashboard/groups/:id" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <GroupDetail />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/history" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <History />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/analytics" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <Analytics />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/receipts" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <Receipts />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/settings" element={
-                      <ProtectedRoute>
-                        <MainLayout>
-                          <Settings />
-                        </MainLayout>
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Router>
-              </NotificationProvider>
-            </GroupProvider>
-          </ExpenseProvider>
+          <CurrencyProvider>
+            <ExpenseProvider>
+              <GroupProvider>
+                <NotificationProvider>
+                  <Router>
+                    <Routes>
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      
+                      {/* Protected routes with MainLayout */}
+                      <Route path="/profile" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <UserProfile />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/settlements" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <Settlements />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/expenses/:id" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <ExpenseDetail />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/dashboard" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <Dashboard />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/dashboard/groups" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <Groups />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/dashboard/groups/:id" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <GroupDetail />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/history" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <History />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/analytics" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <Analytics />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/receipts" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <Receipts />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="/settings" element={
+                        <ProtectedRoute>
+                          <MainLayout>
+                            <Settings />
+                          </MainLayout>
+                        </ProtectedRoute>
+                      } />
+                      
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Router>
+                </NotificationProvider>
+              </GroupProvider>
+            </ExpenseProvider>
+          </CurrencyProvider>
         </UserProvider>
       </AuthProvider>
     </ThemeProvider>

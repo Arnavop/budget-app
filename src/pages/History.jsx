@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { useExpenses } from '../hooks/useExpenses';
+import { useCurrency } from '../hooks/useCurrency';
 
 const History = () => {
   const { expenses, isLoading } = useExpenses();
+  const { formatAmount } = useCurrency();
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -170,7 +172,7 @@ const History = () => {
                 </div>
                 
                 <div style={{ fontWeight: 'bold', fontSize: '18px' }}>
-                  ${expense.amount.toFixed(2)}
+                  {formatAmount(expense.amount)}
                 </div>
               </div>
               

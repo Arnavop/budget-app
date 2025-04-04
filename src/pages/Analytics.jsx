@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../components/common/Card';
 import { useAuth } from '../hooks/useAuth';
+import { useCurrency } from '../hooks/useCurrency';
 import expenses from '../services/expenses';
 
 const Analytics = () => {
   const { currentUser } = useAuth();
+  const { formatAmount } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [selectedView, setSelectedView] = useState(() => {
@@ -186,7 +188,7 @@ const Analytics = () => {
                   fontSize: '12px',
                   fontWeight: 'bold'
                 }}>
-                  {item[valueKey] > 0 ? `$${item[valueKey].toFixed(2)}` : ''}
+                  {item[valueKey] > 0 ? formatAmount(item[valueKey]) : ''}
                 </div>
               </div>
             </div>
@@ -235,7 +237,7 @@ const Analytics = () => {
             Total
           </div>
           <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-            ${stats.summary.totalSpent.toFixed(2)}
+            {formatAmount(stats.summary.totalSpent)}
           </div>
         </div>
       </div>
@@ -265,7 +267,7 @@ const Analytics = () => {
         <Card style={{ flex: 1 }}>
           <h3 style={{ margin: 0 }}>Total Spent</h3>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent)' }}>
-            ${stats.summary.totalSpent.toFixed(2)}
+            {formatAmount(stats.summary.totalSpent)}
           </div>
           <div style={{ color: 'var(--text-secondary)' }}>
             Last 30 days
@@ -275,7 +277,7 @@ const Analytics = () => {
         <Card style={{ flex: 1 }}>
           <h3 style={{ margin: 0 }}>Daily Average</h3>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent)' }}>
-            ${stats.summary.avgPerDay.toFixed(2)}
+            {formatAmount(stats.summary.avgPerDay)}
           </div>
           <div style={{ color: 'var(--text-secondary)' }}>
             Per day
@@ -285,7 +287,7 @@ const Analytics = () => {
         <Card style={{ flex: 1 }}>
           <h3 style={{ margin: 0 }}>Highest Day</h3>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent)' }}>
-            ${stats.summary.maxDay.toFixed(2)}
+            {formatAmount(stats.summary.maxDay)}
           </div>
           <div style={{ color: 'var(--text-secondary)' }}>
             Single day max
@@ -334,7 +336,7 @@ const Analytics = () => {
                     </div>
                     <div>
                       <span style={{ fontWeight: 'bold', marginRight: '5px' }}>
-                        ${category.amount.toFixed(2)}
+                        {formatAmount(category.amount)}
                       </span>
                       <span style={{ color: 'var(--text-secondary)' }}>
                         ({category.percentage}%)

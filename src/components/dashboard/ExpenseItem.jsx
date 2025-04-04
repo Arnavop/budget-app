@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExpenses } from '../../hooks/useExpenses';
+import { useCurrency } from '../../hooks/useCurrency';
 import activities from '../../services/activities';
 
 const STORAGE_KEY = 'budget_app_recent_expenses';
@@ -8,6 +9,7 @@ const STORAGE_KEY = 'budget_app_recent_expenses';
 const ExpenseItem = ({ expense }) => {
   const navigate = useNavigate();
   const { deleteExpense } = useExpenses();
+  const { formatAmount } = useCurrency();
 
   const formatDate = (date) => {
     const today = new Date();
@@ -183,7 +185,7 @@ const ExpenseItem = ({ expense }) => {
             ` with ${expense.splitWith.join(', ')}` : ''}
         </div>
       </div>
-      <div style={expenseAmountStyles}>${expense.amount.toFixed(2)}</div>
+      <div style={expenseAmountStyles}>{formatAmount(expense.amount)}</div>
       <div style={expenseDateStyles}>{formatDate(expense.date)}</div>
       <div style={expenseActionsStyles}>
         <button 

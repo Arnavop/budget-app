@@ -6,14 +6,15 @@ import ManageMembers from '../components/settings/ManageMembers';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
+import { useCurrency } from '../hooks/useCurrency';
 
 const Settings = () => {
   const { currentTheme, setTheme } = useTheme();
   const { logout } = useAuth();
   const { clearAll } = useNotifications();
+  const { currency, setCurrency } = useCurrency();
   const navigate = useNavigate();
   
-  const [currency, setCurrency] = useState('USD');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,6 +103,7 @@ const Settings = () => {
             <option value="JPY">JPY (¥)</option>
             <option value="CAD">CAD ($)</option>
             <option value="AUD">AUD ($)</option>
+            <option value="INR">INR (₹)</option>
           </select>
         </div>
         

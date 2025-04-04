@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../common/Card';
 import { useAuth } from '../../hooks/useAuth';
+import { useCurrency } from '../../hooks/useCurrency';
 
 const STORAGE_KEY = 'budget_app_balances';
 const EXPENSES_STORAGE_KEY = 'budget_app_recent_expenses';
@@ -9,6 +10,7 @@ const BalancesSummary = ({ balances: propBalances = [], onCreateSettlement, rend
   const [balances, setBalances] = useState([]);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
+  const { formatAmount } = useCurrency();
   
   useEffect(() => {
     const calculateBalancesFromExpenses = () => {
@@ -221,14 +223,14 @@ const BalancesSummary = ({ balances: propBalances = [], onCreateSettlement, rend
         <div style={totalItemStyles}>
           <div style={totalLabelStyles}>You are owed</div>
           <div style={{...totalAmountStyles, color: '#4caf50'}}>
-            ${totalOwing.toFixed(2)}
+            {formatAmount(totalOwing)}
           </div>
         </div>
         
         <div style={totalItemStyles}>
           <div style={totalLabelStyles}>You owe</div>
           <div style={{...totalAmountStyles, color: '#f44336'}}>
-            ${totalOwed.toFixed(2)}
+            {formatAmount(totalOwed)}
           </div>
         </div>
       </div>
@@ -250,8 +252,8 @@ const BalancesSummary = ({ balances: propBalances = [], onCreateSettlement, rend
                   {balance.balance === 0 
                     ? 'Settled up'
                     : balance.balance > 0 
-                      ? `+$${balance.balance.toFixed(2)}` 
-                      : `-$${Math.abs(balance.balance).toFixed(2)}`}
+                      ? `+${formatAmount(balance.balance)}` 
+                      : `-${formatAmount(Math.abs(balance.balance))}`}
                 </div>
               </div>
               
@@ -263,7 +265,7 @@ const BalancesSummary = ({ balances: propBalances = [], onCreateSettlement, rend
                       <span style={arrowStyles}>→</span>
                       <span>You</span>
                       <span style={arrowStyles}>•</span>
-                      <span>${balance.balance.toFixed(2)}</span>
+                      <span>{formatAmount(balance.balance)}</span>
                     </>
                   ) : (
                     <>
@@ -271,7 +273,7 @@ const BalancesSummary = ({ balances: propBalances = [], onCreateSettlement, rend
                       <span style={arrowStyles}>→</span>
                       <span>{balance.name}</span>
                       <span style={arrowStyles}>•</span>
-                      <span>${Math.abs(balance.balance).toFixed(2)}</span>
+                      <span>{formatAmount(Math.abs(balance.balance))}</span>
                     </>
                   )}
                 </div>

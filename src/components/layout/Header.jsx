@@ -222,7 +222,7 @@ const Header = () => {
             <div>Your Profile</div>
           </div>
           <div style={dropdownDividerStyles}></div>
-          <div style={dropdownItemStyles}>
+          <div style={dropdownItemStyles} onClick={()=>{navigate('/history')}}>
             <span>🔔</span>
             <div>Notifications</div>
           </div>

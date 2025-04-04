@@ -19,7 +19,7 @@ const ExpenseList = () => {
       setLoading(true);
       
       const storedExpenses = localStorage.getItem(STORAGE_KEY);
-      const parsedExpenses = storedExpenses ? JSON.parse(storedExpenses) : [];
+      const parsedExpenses = storedExpenses ? JSON.parse(storedExpenses) : []; //json to js object
       
       let allExpenses = parsedExpenses;
       if (parsedExpenses.length === 0) {

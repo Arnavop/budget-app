@@ -105,7 +105,7 @@ const Settlements = () => {
   const handleSettleUp = async (userId, amount) => {
     try {
       // Find the user in the balances array to get their name
-      const userData = balances.find(b => b.userId === userId);
+      const userData = balances.find(b => b.userId === userId || b.name === userId);
       if (!userData) {
         throw new Error('User not found in balances');
       }
@@ -113,12 +113,14 @@ const Settlements = () => {
       // Create a new settlement directly marked as completed
       const newSettlement = {
         id: `settlement-${Date.now()}`,
-        fromUserId: currentUser.id,
-        toUserId: userId,
-        toUserName: userData.name,
+        fromUserId: amount < 0 ? currentUser.id : userId,
+        toUserId: amount < 0 ? userId : currentUser.id,
+        fromUser: amount < 0 ? 'You' : userData.name,
+        toUser: amount < 0 ? userData.name : 'You',
         amount: Math.abs(parseFloat(amount)),
-        created: new Date(),
-        completed: true
+        date: new Date().toISOString(),
+        completed: true,
+        completedDate: new Date().toISOString()
       };
       
       // Find related expenses between these users
@@ -134,24 +136,31 @@ const Settlements = () => {
         return false;
       });
       
-      // Delete related expenses
-      for (const expense of relatedExpenses) {
-        await deleteExpense(expense.id);
-      }
+      // Delete related expenses in the background
+      const deletePromises = relatedExpenses.map(expense => deleteExpense(expense.id));
       
-      // Add the settlement to the list
+      // Update UI immediately
+      // 1. Update settlements list
       const updatedSettlements = [newSettlement, ...settlements];
       setSettlements(updatedSettlements);
+      
+      // 2. Update balances list - remove the settled balance
+      const updatedBalances = balances.map(b => {
+        if ((b.userId === userId || b.name === userId)) {
+          return { ...b, balance: 0 };
+        }
+        return b;
+      });
+      setBalances(updatedBalances);
       
       // Update localStorage
       localStorage.setItem('budget_app_settlements', JSON.stringify(updatedSettlements));
       
-      // Recalculate balances
-      await calculateBalancesFromExpenses();
+      // Process background tasks
+      await Promise.all(deletePromises);
       
-      // Refresh data
-      const updatedBalances = await getBalances();
-      setBalances(updatedBalances);
+      // Recalculate balances in the background
+      calculateBalancesFromExpenses();
       
       // Trigger events to update other components
       window.dispatchEvent(new CustomEvent('balancesUpdated'));
@@ -191,10 +200,6 @@ const Settlements = () => {
     <div style={pageStyles}>
       <div style={headerStyles}>
         <h1>Settlements</h1>
-        <Button 
-          text="New Settlement" 
-          onClick={() => setShowCreateModal(true)}
-        />
       </div>
       
       {loading ? (
